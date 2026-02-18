@@ -52,7 +52,9 @@ struct PopupContentView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .accessibilityLabel("Dismiss permission banner")
+                .accessibilityLabel(
+                    AppText.value(.popupDismissPermissionBannerA11y, language: viewModel.appLanguage)
+                )
             }
 
             HStack(spacing: 8) {
@@ -95,7 +97,9 @@ struct PopupContentView: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Clear search")
+                .accessibilityLabel(
+                    AppText.value(.popupClearSearchA11y, language: viewModel.appLanguage)
+                )
             }
         }
         .padding(10)

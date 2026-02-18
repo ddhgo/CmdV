@@ -2,6 +2,13 @@
 
 This guide describes the standard release flow for a signed and notarized DMG.
 
+## Distribution Policy (Beta/Production)
+
+- Default distribution format: **Release DMG**
+- Recommended: **Developer ID signed + notarized DMG**
+- ZIP builds are for internal ad-hoc sharing only and are not recommended for tester distribution
+  because Gatekeeper and Accessibility trust can be less predictable.
+
 ## 1) Prerequisites
 
 - Apple Developer membership (Developer ID distribution)

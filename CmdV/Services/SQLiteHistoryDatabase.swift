@@ -21,7 +21,7 @@ final class SQLiteHistoryDatabase {
 
         do {
             try execute("PRAGMA journal_mode=WAL;")
-            try execute("PRAGMA synchronous=NORMAL;")
+            try execute("PRAGMA synchronous=FULL;")
             try execute(
                 """
                 CREATE TABLE IF NOT EXISTS history_items (

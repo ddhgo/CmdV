@@ -73,7 +73,6 @@ if [[ "$SKIP_BUILD" -eq 0 ]]; then
     -configuration "$CONFIGURATION" \
     -destination 'generic/platform=macOS' \
     -derivedDataPath "$DERIVED_DATA_PATH" \
-    CODE_SIGNING_ALLOWED=NO \
     build
 else
   echo "[1/4] Skipping build"

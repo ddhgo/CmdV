@@ -12,8 +12,17 @@ enum PasteOutcome {
     case failedToSendShortcut
 }
 
+protocol AccessibilityPermissionChecking {
+    var accessibilityGrantedNow: Bool { get }
+}
+
 final class PasteService {
-    private let permissions: PermissionsService
+    private let permissions: AccessibilityPermissionChecking
+    private let sendCommandVShortcutHandler: () -> Bool
+    private let frontmostApplicationProvider: () -> NSRunningApplication?
+    private let applicationActivator: (NSRunningApplication) -> Void
+    private let mainAsyncAfter: (TimeInterval, @escaping () -> Void) -> Void
+    private let refocusHandler: (AXUIElement?, AXUIElement?) -> Void
     private static let imagePreparationQueue = DispatchQueue(
         label: "CmdV.PasteService.ImagePreparation",
         qos: .userInitiated
@@ -24,8 +33,26 @@ final class PasteService {
         let tiffData: Data?
     }
 
-    init(permissions: PermissionsService) {
+    init(
+        permissions: AccessibilityPermissionChecking,
+        sendCommandVShortcutHandler: @escaping () -> Bool = PasteService.sendCommandVShortcut,
+        frontmostApplicationProvider: @escaping () -> NSRunningApplication? = {
+            NSWorkspace.shared.frontmostApplication
+        },
+        applicationActivator: @escaping (NSRunningApplication) -> Void = {
+            $0.activate(options: [.activateIgnoringOtherApps])
+        },
+        mainAsyncAfter: @escaping (TimeInterval, @escaping () -> Void) -> Void = { delay, work in
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: work)
+        },
+        refocusHandler: @escaping (AXUIElement?, AXUIElement?) -> Void = PasteService.refocusIfPossible
+    ) {
         self.permissions = permissions
+        self.sendCommandVShortcutHandler = sendCommandVShortcutHandler
+        self.frontmostApplicationProvider = frontmostApplicationProvider
+        self.applicationActivator = applicationActivator
+        self.mainAsyncAfter = mainAsyncAfter
+        self.refocusHandler = refocusHandler
     }
 
     func paste(
@@ -77,11 +104,11 @@ final class PasteService {
         }
 
         if let targetApplication {
-            targetApplication.activate(options: [.activateIgnoringOtherApps])
+            applicationActivator(targetApplication)
         }
 
         if let targetApplication {
-            Self.sendPasteWhenTargetIsFrontmost(
+            sendPasteWhenTargetIsFrontmost(
                 targetApplication,
                 targetFocusedElement: targetFocusedElement,
                 targetFocusedWindow: targetFocusedWindow,
@@ -91,8 +118,8 @@ final class PasteService {
             return
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-            let didSend = Self.sendCommandVShortcut()
+        mainAsyncAfter(0.08) { [self] in
+            let didSend = sendCommandVShortcutHandler()
             completion(didSend ? .pasted : .failedToSendShortcut)
         }
     }
@@ -229,7 +256,7 @@ final class PasteService {
         return true
     }
 
-    private static func sendPasteWhenTargetIsFrontmost(
+    private func sendPasteWhenTargetIsFrontmost(
         _ targetApplication: NSRunningApplication,
         targetFocusedElement: AXUIElement?,
         targetFocusedWindow: AXUIElement?,
@@ -242,30 +269,30 @@ final class PasteService {
         }
 
         if isFrontmost(targetApplication) {
-            refocusIfPossible(targetFocusedElement, targetFocusedWindow: targetFocusedWindow)
+            refocusHandler(targetFocusedElement, targetFocusedWindow)
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.09) {
-                let didSend = sendCommandVShortcut()
+            mainAsyncAfter(0.09) { [self] in
+                let didSend = sendCommandVShortcutHandler()
                 completion(didSend ? .pasted : .failedToSendShortcut)
             }
             return
         }
 
         guard retriesRemaining > 0 else {
-            targetApplication.activate(options: [.activateIgnoringOtherApps])
+            applicationActivator(targetApplication)
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-                refocusIfPossible(targetFocusedElement, targetFocusedWindow: targetFocusedWindow)
-                let didSend = sendCommandVShortcut()
+            mainAsyncAfter(0.12) { [self] in
+                refocusHandler(targetFocusedElement, targetFocusedWindow)
+                let didSend = sendCommandVShortcutHandler()
                 completion(didSend ? .pasted : .failedToSendShortcut)
             }
             return
         }
 
-        targetApplication.activate(options: [.activateIgnoringOtherApps])
+        applicationActivator(targetApplication)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
-            sendPasteWhenTargetIsFrontmost(
+        mainAsyncAfter(0.06) { [self] in
+            self.sendPasteWhenTargetIsFrontmost(
                 targetApplication,
                 targetFocusedElement: targetFocusedElement,
                 targetFocusedWindow: targetFocusedWindow,
@@ -318,8 +345,8 @@ final class PasteService {
         }
     }
 
-    private static func isFrontmost(_ application: NSRunningApplication) -> Bool {
-        guard let frontmostApplication = NSWorkspace.shared.frontmostApplication else {
+    private func isFrontmost(_ application: NSRunningApplication) -> Bool {
+        guard let frontmostApplication = frontmostApplicationProvider() else {
             return false
         }
 

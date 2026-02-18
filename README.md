@@ -83,6 +83,10 @@ Useful options:
 Default output:
 - `dist/CmdV-<version>.dmg`
 
+Distribution note:
+- Share **Release DMG** for external testers.
+- ZIP sharing is intended only for internal quick checks.
+
 ## Signed Release (Developer ID + Notarization)
 
 Production release flow script:

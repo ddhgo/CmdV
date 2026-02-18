@@ -10,6 +10,7 @@ struct SettingsView: View {
     let onClose: () -> Void
 
     @State private var labelColumnWidth: CGFloat = 148
+    @State private var showClearHistoryConfirmation = false
 
     private var language: AppLanguage {
         settings.appLanguage
@@ -77,6 +78,14 @@ struct SettingsView: View {
                         .toggleStyle(.switch)
                 }
 
+                Text(launchAtLoginStatusText)
+                    .font(.caption)
+                    .foregroundStyle(launchAtLoginStatusColor)
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 VStack(alignment: .leading, spacing: 4) {
                     clearOnSystemRestartRow
 
@@ -122,13 +131,26 @@ struct SettingsView: View {
                 HStack {
                     Spacer(minLength: 0)
 
-                    Button(role: .destructive, action: onClearHistory) {
+                    Button(role: .destructive) {
+                        showClearHistoryConfirmation = true
+                    } label: {
                         Text(AppText.value(.settingsClearHistory, language: language))
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                 }
             }
+        }
+        .alert(
+            AppText.value(.settingsClearHistoryConfirmTitle, language: language),
+            isPresented: $showClearHistoryConfirmation
+        ) {
+            Button(AppText.value(.settingsCancel, language: language), role: .cancel) {}
+            Button(AppText.value(.settingsClearHistory, language: language), role: .destructive) {
+                onClearHistory()
+            }
+        } message: {
+            Text(AppText.value(.settingsClearHistoryConfirmMessage, language: language))
         }
     }
 
@@ -412,6 +434,31 @@ struct SettingsView: View {
                 return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
             }
         )
+    }
+
+    private var launchAtLoginStatusText: String {
+        switch settings.launchAtLoginFeedback {
+        case .enabled:
+            return AppText.value(.settingsLaunchAtLoginEnabledState, language: language)
+        case .disabled:
+            return AppText.value(.settingsLaunchAtLoginDisabledState, language: language)
+        case let .failed(reason):
+            return String(
+                format: AppText.value(.settingsLaunchAtLoginFailedFormat, language: language),
+                reason
+            )
+        }
+    }
+
+    private var launchAtLoginStatusColor: Color {
+        switch settings.launchAtLoginFeedback {
+        case .failed:
+            return .orange
+        case .enabled:
+            return .green
+        case .disabled:
+            return .secondary
+        }
     }
 }
 

@@ -4,10 +4,75 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
+protocol PasteboardItemReading {
+    func string(forType type: NSPasteboard.PasteboardType) -> String?
+    func data(forType type: NSPasteboard.PasteboardType) -> Data?
+}
+
+protocol PasteboardReading {
+    var changeCount: Int { get }
+    var firstItem: PasteboardItemReading? { get }
+    func string(forType type: NSPasteboard.PasteboardType) -> String?
+    func data(forType type: NSPasteboard.PasteboardType) -> Data?
+    func firstImageTIFFRepresentation() -> Data?
+}
+
+private struct SystemPasteboardItemReader: PasteboardItemReading {
+    let item: NSPasteboardItem
+
+    func string(forType type: NSPasteboard.PasteboardType) -> String? {
+        item.string(forType: type)
+    }
+
+    func data(forType type: NSPasteboard.PasteboardType) -> Data? {
+        item.data(forType: type)
+    }
+}
+
+private final class SystemPasteboardReader: PasteboardReading {
+    private let pasteboard: NSPasteboard
+
+    init(pasteboard: NSPasteboard = .general) {
+        self.pasteboard = pasteboard
+    }
+
+    var changeCount: Int {
+        pasteboard.changeCount
+    }
+
+    var firstItem: PasteboardItemReading? {
+        guard let item = pasteboard.pasteboardItems?.first else {
+            return nil
+        }
+
+        return SystemPasteboardItemReader(item: item)
+    }
+
+    func string(forType type: NSPasteboard.PasteboardType) -> String? {
+        pasteboard.string(forType: type)
+    }
+
+    func data(forType type: NSPasteboard.PasteboardType) -> Data? {
+        pasteboard.data(forType: type)
+    }
+
+    func firstImageTIFFRepresentation() -> Data? {
+        guard
+            let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil),
+            let image = images.first as? NSImage
+        else {
+            return nil
+        }
+
+        return image.tiffRepresentation
+    }
+}
+
 final class ClipboardMonitor {
-    private let pasteboard = NSPasteboard.general
+    private let pasteboardReader: PasteboardReading
     private let historyStore: HistoryStore
     private let settings: SettingsStore
+    private let frontmostBundleIDProvider: () -> String?
     private let payloadProcessingQueue = DispatchQueue(
         label: "CmdV.ClipboardPayloadProcessingQueue",
         qos: .userInitiated
@@ -29,10 +94,19 @@ final class ClipboardMonitor {
         let fallbackImageData: Data?
     }
 
-    init(historyStore: HistoryStore, settings: SettingsStore) {
+    init(
+        historyStore: HistoryStore,
+        settings: SettingsStore,
+        pasteboardReader: PasteboardReading = SystemPasteboardReader(),
+        frontmostBundleIDProvider: @escaping () -> String? = {
+            NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+        }
+    ) {
+        self.pasteboardReader = pasteboardReader
         self.historyStore = historyStore
         self.settings = settings
-        lastChangeCount = pasteboard.changeCount
+        self.frontmostBundleIDProvider = frontmostBundleIDProvider
+        lastChangeCount = pasteboardReader.changeCount
 
         settings.$pollingInterval
             .dropFirst()
@@ -71,32 +145,38 @@ final class ClipboardMonitor {
     }
 
     private func pollPasteboard() {
-        let currentChangeCount = pasteboard.changeCount
+        let currentChangeCount = pasteboardReader.changeCount
         guard currentChangeCount != lastChangeCount else {
             return
         }
 
         lastChangeCount = currentChangeCount
 
-        guard !settings.isRecordingPaused else {
+        let isRecordingPaused = settings.isRecordingPaused
+        guard !isRecordingPaused else {
             return
         }
 
-        let sourceBundleID = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
-        if let sourceBundleID, settings.excludedBundleIDs.contains(sourceBundleID) {
+        let excludedBundleIDs = settings.excludedBundleIDs
+        let sourceBundleID = frontmostBundleIDProvider()
+
+        if let sourceBundleID, excludedBundleIDs.contains(sourceBundleID) {
             return
         }
-
-        let payload = capturePayloadSnapshot()
 
         payloadProcessingQueue.async { [weak self] in
-            self?.processPayload(payload, sourceBundleID: sourceBundleID)
+            guard let self else {
+                return
+            }
+
+            let payload = self.capturePayloadSnapshot()
+            self.processPayload(payload, sourceBundleID: sourceBundleID)
         }
     }
 
     private func capturePayloadSnapshot() -> PasteboardPayloadSnapshot {
-        let item = pasteboard.pasteboardItems?.first
-        let plainText = pasteboard.string(forType: .string)
+        let item = pasteboardReader.firstItem
+        let plainText = pasteboardReader.string(forType: .string)
         let utf8Text = item?.string(forType: utf8TextType)
         let utf16Text = item?.string(forType: utf16TextType)
         let rtfData = item?.data(forType: .rtf)
@@ -113,15 +193,12 @@ final class ClipboardMonitor {
             )
         }
 
-        let pngData = pasteboard.data(forType: .png)
-        let tiffData = pasteboard.data(forType: .tiff)
+        let pngData = pasteboardReader.data(forType: .png)
+        let tiffData = pasteboardReader.data(forType: .tiff)
 
         let fallbackImageData: Data?
-        if pngData == nil, tiffData == nil,
-           let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil),
-           let image = images.first as? NSImage
-        {
-            fallbackImageData = image.tiffRepresentation
+        if pngData == nil, tiffData == nil {
+            fallbackImageData = pasteboardReader.firstImageTIFFRepresentation()
         } else {
             fallbackImageData = nil
         }

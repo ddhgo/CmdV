@@ -33,6 +33,8 @@
 		AA0000000000000000000319 /* HotkeyConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021B /* HotkeyConfigurationTests.swift */; };
 		AA000000000000000000031A /* PasteServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021C /* PasteServiceTests.swift */; };
 		AA000000000000000000031B /* ImageStorageTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021D /* ImageStorageTests.swift */; };
+		AA0000000000000000000320 /* HistoryStoreIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000222 /* HistoryStoreIntegrationTests.swift */; };
+		AA0000000000000000000321 /* ClipboardMonitorIntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000223 /* ClipboardMonitorIntegrationTests.swift */; };
 		AA000000000000000000031C /* CmdVAppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021E /* CmdVAppIcon.icns */; };
 		AA000000000000000000031D /* CmdVMenuBarTemplate.png in Resources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000021F /* CmdVMenuBarTemplate.png */; };
 		AA000000000000000000031E /* CmdVMenuBarTemplate@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000220 /* CmdVMenuBarTemplate@2x.png */; };
@@ -81,6 +83,8 @@
 		AA000000000000000000021B /* HotkeyConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyConfigurationTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000021C /* PasteServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasteServiceTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000021D /* ImageStorageTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStorageTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000222 /* HistoryStoreIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryStoreIntegrationTests.swift; sourceTree = "<group>"; };
+		AA0000000000000000000223 /* ClipboardMonitorIntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardMonitorIntegrationTests.swift; sourceTree = "<group>"; };
 		AA000000000000000000021E /* CmdVAppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = CmdVAppIcon.icns; sourceTree = "<group>"; };
 		AA000000000000000000021F /* CmdVMenuBarTemplate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = CmdVMenuBarTemplate.png; sourceTree = "<group>"; };
 		AA0000000000000000000220 /* CmdVMenuBarTemplate@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "CmdVMenuBarTemplate@2x.png"; sourceTree = "<group>"; };
@@ -213,6 +217,8 @@
 				AA000000000000000000021B /* HotkeyConfigurationTests.swift */,
 				AA000000000000000000021C /* PasteServiceTests.swift */,
 				AA000000000000000000021D /* ImageStorageTests.swift */,
+				AA0000000000000000000222 /* HistoryStoreIntegrationTests.swift */,
+				AA0000000000000000000223 /* ClipboardMonitorIntegrationTests.swift */,
 			);
 			path = CmdVTests;
 			sourceTree = "<group>";
@@ -343,6 +349,8 @@
 				AA0000000000000000000319 /* HotkeyConfigurationTests.swift in Sources */,
 				AA000000000000000000031A /* PasteServiceTests.swift in Sources */,
 				AA000000000000000000031B /* ImageStorageTests.swift in Sources */,
+				AA0000000000000000000320 /* HistoryStoreIntegrationTests.swift in Sources */,
+				AA0000000000000000000321 /* ClipboardMonitorIntegrationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

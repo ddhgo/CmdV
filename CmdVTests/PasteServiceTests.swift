@@ -13,7 +13,7 @@ final class PasteServiceTests: XCTestCase {
             .appendingPathComponent("CmdVTests-PasteService-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
 
-        service = PasteService(permissions: PermissionsService())
+        service = makeService(accessibilityGranted: true)
         NSPasteboard.general.clearContents()
     }
 
@@ -96,6 +96,134 @@ final class PasteServiceTests: XCTestCase {
         XCTFail("Expected .failedToCopy but got \(String(describing: outcome))")
     }
 
+    func testPasteReturnsCopiedOnlyNeedsAccessibilityWhenPermissionMissing() {
+        service = makeService(
+            accessibilityGranted: false,
+            sendCommandVShortcutHandler: {
+                XCTFail("Cmd+V should not be sent when accessibility is missing")
+                return false
+            }
+        )
+        let item = makeTextItem(text: "permission test")
+
+        let completion = expectation(description: "paste completion")
+        var outcome: PasteOutcome?
+
+        service.paste(
+            item: item,
+            targetApplication: nil,
+            targetFocusedElement: nil,
+            targetFocusedWindow: nil
+        ) { result in
+            outcome = result
+            completion.fulfill()
+        }
+
+        wait(for: [completion], timeout: 1.0)
+
+        if case .copiedOnlyNeedsAccessibility? = outcome {
+            XCTAssertEqual(NSPasteboard.general.string(forType: .string), "permission test")
+            return
+        }
+
+        XCTFail("Expected .copiedOnlyNeedsAccessibility but got \(String(describing: outcome))")
+    }
+
+    func testPasteReturnsPastedWhenPermissionGrantedAndShortcutSucceeds() {
+        service = makeService(
+            accessibilityGranted: true,
+            sendCommandVShortcutHandler: { true }
+        )
+        let item = makeTextItem(text: "shortcut-success")
+
+        let completion = expectation(description: "paste completion")
+        var outcome: PasteOutcome?
+
+        service.paste(
+            item: item,
+            targetApplication: nil,
+            targetFocusedElement: nil,
+            targetFocusedWindow: nil
+        ) { result in
+            outcome = result
+            completion.fulfill()
+        }
+
+        wait(for: [completion], timeout: 1.0)
+
+        if case .pasted? = outcome {
+            return
+        }
+
+        XCTFail("Expected .pasted but got \(String(describing: outcome))")
+    }
+
+    func testPasteReturnsFailedToSendShortcutWhenPermissionGrantedButShortcutFails() {
+        service = makeService(
+            accessibilityGranted: true,
+            sendCommandVShortcutHandler: { false }
+        )
+        let item = makeTextItem(text: "shortcut-failure")
+
+        let completion = expectation(description: "paste completion")
+        var outcome: PasteOutcome?
+
+        service.paste(
+            item: item,
+            targetApplication: nil,
+            targetFocusedElement: nil,
+            targetFocusedWindow: nil
+        ) { result in
+            outcome = result
+            completion.fulfill()
+        }
+
+        wait(for: [completion], timeout: 1.0)
+
+        if case .failedToSendShortcut? = outcome {
+            return
+        }
+
+        XCTFail("Expected .failedToSendShortcut but got \(String(describing: outcome))")
+    }
+
+    func testPasteTargetApplicationFocusPathReturnsPasted() {
+        let targetApplication = NSRunningApplication.current
+        var activateCallCount = 0
+
+        service = makeService(
+            accessibilityGranted: true,
+            sendCommandVShortcutHandler: { true },
+            frontmostApplicationProvider: { targetApplication },
+            applicationActivator: { _ in
+                activateCallCount += 1
+            }
+        )
+
+        let item = makeTextItem(text: "target-flow")
+        let completion = expectation(description: "paste completion")
+        var outcome: PasteOutcome?
+
+        service.paste(
+            item: item,
+            targetApplication: targetApplication,
+            targetFocusedElement: nil,
+            targetFocusedWindow: nil
+        ) { result in
+            outcome = result
+            completion.fulfill()
+        }
+
+        wait(for: [completion], timeout: 1.0)
+
+        if case .pasted? = outcome {
+            XCTAssertGreaterThanOrEqual(activateCallCount, 1)
+            return
+        }
+
+        XCTFail("Expected .pasted but got \(String(describing: outcome))")
+    }
+
     private func makeTextItem(text: String?) -> ClipboardItem {
         ClipboardItem(
             id: 1,
@@ -139,5 +267,29 @@ final class PasteServiceTests: XCTestCase {
         }
 
         return pngData
+    }
+
+    private func makeService(
+        accessibilityGranted: Bool,
+        sendCommandVShortcutHandler: @escaping () -> Bool = { true },
+        frontmostApplicationProvider: @escaping () -> NSRunningApplication? = { nil },
+        applicationActivator: @escaping (NSRunningApplication) -> Void = { _ in }
+    ) -> PasteService {
+        PasteService(
+            permissions: StubPermissions(accessibilityGranted: accessibilityGranted),
+            sendCommandVShortcutHandler: sendCommandVShortcutHandler,
+            frontmostApplicationProvider: frontmostApplicationProvider,
+            applicationActivator: applicationActivator,
+            mainAsyncAfter: { _, work in work() },
+            refocusHandler: { _, _ in }
+        )
+    }
+}
+
+private struct StubPermissions: AccessibilityPermissionChecking {
+    let accessibilityGranted: Bool
+
+    var accessibilityGrantedNow: Bool {
+        accessibilityGranted
     }
 }

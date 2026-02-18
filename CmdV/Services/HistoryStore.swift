@@ -17,24 +17,25 @@ final class HistoryStore: ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
-    init(settings: SettingsStore) throws {
+    init(settings: SettingsStore, appSupportDirectory: URL? = nil) throws {
         self.settings = settings
 
-        let appSupportDirectory = try Self.createAppSupportDirectory()
-        database = try SQLiteHistoryDatabase(databaseURL: appSupportDirectory.appendingPathComponent("history.sqlite3"))
-        imageStorage = try ImageStorage(baseDirectory: appSupportDirectory)
+        let resolvedAppSupportDirectory = try appSupportDirectory ?? Self.createAppSupportDirectory()
+        database = try SQLiteHistoryDatabase(databaseURL: resolvedAppSupportDirectory.appendingPathComponent("history.sqlite3"))
+        imageStorage = try ImageStorage(baseDirectory: resolvedAppSupportDirectory)
 
         settings.$maxHistoryItems
             .dropFirst()
-            .sink { [weak self] _ in
-                self?.trimToCapacity()
+            .sink { [weak self] capacity in
+                self?.trimToCapacity(limit: capacity)
             }
             .store(in: &cancellables)
     }
 
     func loadInitialHistory() {
+        let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
-            self?.publishLatestItems()
+            self?.publishLatestItems(limit: capacity)
         }
     }
 
@@ -44,6 +45,7 @@ final class HistoryStore: ObservableObject {
             return
         }
 
+        let capacity = currentCapacitySnapshot()
         let hash = Self.hashString(normalizedText)
         let fingerprint = Self.textFingerprint(normalizedText)
 
@@ -84,8 +86,8 @@ final class HistoryStore: ObservableObject {
                 at: now
             )
 
-            self.cleanupOverflow()
-            self.publishLatestItems()
+            self.cleanupOverflow(capacity: capacity)
+            self.publishLatestItems(limit: capacity)
         }
     }
 
@@ -94,6 +96,7 @@ final class HistoryStore: ObservableObject {
             return
         }
 
+        let capacity = currentCapacitySnapshot()
         let hash = Self.hashData(pngData)
 
         queue.async { [weak self] in
@@ -115,8 +118,8 @@ final class HistoryStore: ObservableObject {
                     sourceBundleID: sourceBundleID
                 )
 
-                self.cleanupOverflow()
-                self.publishLatestItems()
+                self.cleanupOverflow(capacity: capacity)
+                self.publishLatestItems(limit: capacity)
             } catch {
                 return
             }
@@ -124,6 +127,7 @@ final class HistoryStore: ObservableObject {
     }
 
     func delete(itemID: Int64) {
+        let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
             guard let self else {
                 return
@@ -131,22 +135,24 @@ final class HistoryStore: ObservableObject {
 
             let removedPath = self.database.deleteItem(id: itemID)
             self.imageStorage.removeImage(at: removedPath)
-            self.publishLatestItems()
+            self.publishLatestItems(limit: capacity)
         }
     }
 
     func setPinned(itemID: Int64, isPinned: Bool) {
+        let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
             guard let self else {
                 return
             }
 
             self.database.setPinned(itemID: itemID, isPinned: isPinned)
-            self.publishLatestItems()
+            self.publishLatestItems(limit: capacity)
         }
     }
 
     func clearHistory() {
+        let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
             guard let self else {
                 return
@@ -155,23 +161,27 @@ final class HistoryStore: ObservableObject {
             let removedPaths = self.database.clearAll()
             self.imageStorage.removeImages(at: removedPaths)
             self.resetRecentTextCaptureState()
-            self.publishLatestItems()
+            self.publishLatestItems(limit: capacity)
         }
     }
 
     func trimToCapacity() {
+        trimToCapacity(limit: currentCapacitySnapshot())
+    }
+
+    func trimToCapacity(limit: Int) {
         queue.async { [weak self] in
             guard let self else {
                 return
             }
 
-            self.cleanupOverflow()
-            self.publishLatestItems()
+            self.cleanupOverflow(capacity: limit)
+            self.publishLatestItems(limit: limit)
         }
     }
 
-    private func cleanupOverflow() {
-        let removedPaths = database.trimToCapacity(settings.maxHistoryItems)
+    private func cleanupOverflow(capacity: Int) {
+        let removedPaths = database.trimToCapacity(capacity)
         imageStorage.removeImages(at: removedPaths)
     }
 
@@ -211,10 +221,20 @@ final class HistoryStore: ObservableObject {
         lastInsertedTextDate = .distantPast
     }
 
-    private func publishLatestItems() {
-        let latest = database.fetchRecentItems(limit: settings.maxHistoryItems)
+    private func publishLatestItems(limit: Int) {
+        let latest = database.fetchRecentItems(limit: limit)
         DispatchQueue.main.async { [weak self] in
             self?.items = latest
+        }
+    }
+
+    private func currentCapacitySnapshot() -> Int {
+        if Thread.isMainThread {
+            return settings.maxHistoryItems
+        }
+
+        return DispatchQueue.main.sync {
+            settings.maxHistoryItems
         }
     }
 

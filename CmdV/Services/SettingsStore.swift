@@ -2,6 +2,12 @@ import AppKit
 import Foundation
 import ServiceManagement
 
+enum LaunchAtLoginFeedback: Equatable {
+    case enabled
+    case disabled
+    case failed(String)
+}
+
 final class SettingsStore: ObservableObject {
     private enum Keys {
         static let maxHistoryItems = "settings.maxHistoryItems"
@@ -52,6 +58,8 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published private(set) var launchAtLoginFeedback: LaunchAtLoginFeedback
+
     @Published var excludedBundleIDsText: String {
         didSet {
             defaults.set(excludedBundleIDsText, forKey: Keys.excludedBundleIDsText)
@@ -101,11 +109,14 @@ final class SettingsStore: ObservableObject {
         pollingInterval = max(0.2, min(2.0, pollingValue))
 
         isRecordingPaused = defaults.object(forKey: Keys.isRecordingPaused) as? Bool ?? false
+        let initialLaunchAtLoginEnabled: Bool
         if let storedLaunchAtLoginEnabled = defaults.object(forKey: Keys.launchAtLoginEnabled) as? Bool {
-            launchAtLoginEnabled = storedLaunchAtLoginEnabled
+            initialLaunchAtLoginEnabled = storedLaunchAtLoginEnabled
         } else {
-            launchAtLoginEnabled = Self.readSystemLaunchAtLoginEnabled()
+            initialLaunchAtLoginEnabled = Self.readSystemLaunchAtLoginEnabled()
         }
+        launchAtLoginEnabled = initialLaunchAtLoginEnabled
+        launchAtLoginFeedback = initialLaunchAtLoginEnabled ? .enabled : .disabled
         excludedBundleIDsText = defaults.string(forKey: Keys.excludedBundleIDsText) ?? ""
         appLanguage = AppLanguage(rawValue: defaults.string(forKey: Keys.appLanguage) ?? "") ?? .english
         clearHistoryOnSystemRestart = defaults.object(forKey: Keys.clearHistoryOnSystemRestart) as? Bool ?? false
@@ -132,7 +143,9 @@ final class SettingsStore: ObservableObject {
     }
 
     func refreshLaunchAtLoginStatus() {
-        launchAtLoginEnabled = Self.readSystemLaunchAtLoginEnabled()
+        let isEnabled = Self.readSystemLaunchAtLoginEnabled()
+        launchAtLoginEnabled = isEnabled
+        launchAtLoginFeedback = isEnabled ? .enabled : .disabled
     }
 
     @discardableResult
@@ -146,9 +159,16 @@ final class SettingsStore: ObservableObject {
 
             let applied = Self.readSystemLaunchAtLoginEnabled()
             launchAtLoginEnabled = applied
-            return applied == enabled
+            if applied == enabled {
+                launchAtLoginFeedback = applied ? .enabled : .disabled
+                return true
+            }
+
+            launchAtLoginFeedback = .failed("System launch-at-login status did not match the requested value.")
+            return false
         } catch {
             launchAtLoginEnabled = Self.readSystemLaunchAtLoginEnabled()
+            launchAtLoginFeedback = .failed(error.localizedDescription)
             return false
         }
     }
@@ -220,7 +240,9 @@ enum AppTextKey {
     case popupPermissionBanner
     case popupRequest
     case popupOpenSettings
+    case popupDismissPermissionBannerA11y
     case popupSearchPlaceholder
+    case popupClearSearchA11y
     case popupNoClipboardItems
     case popupNoClipboardSubtitle
     case popupFooterHints
@@ -231,6 +253,9 @@ enum AppTextKey {
     case settingsLanguage
     case settingsPauseRecording
     case settingsLaunchAtLogin
+    case settingsLaunchAtLoginEnabledState
+    case settingsLaunchAtLoginDisabledState
+    case settingsLaunchAtLoginFailedFormat
     case settingsClearOnSystemRestart
     case settingsClearOnSystemRestartHint
     case settingsHistoryCapacityFormat
@@ -253,6 +278,9 @@ enum AppTextKey {
     case settingsOpenPrivacySettings
     case settingsNoPermissionHint
     case settingsClearHistory
+    case settingsClearHistoryConfirmTitle
+    case settingsClearHistoryConfirmMessage
+    case settingsCancel
     case settingsDone
 }
 
@@ -320,8 +348,12 @@ enum AppText {
             return "Request"
         case .popupOpenSettings:
             return "Open Settings"
+        case .popupDismissPermissionBannerA11y:
+            return "Dismiss permission banner"
         case .popupSearchPlaceholder:
             return "Search clipboard history"
+        case .popupClearSearchA11y:
+            return "Clear search"
         case .popupNoClipboardItems:
             return "No clipboard items"
         case .popupNoClipboardSubtitle:
@@ -341,6 +373,12 @@ enum AppText {
             return "Pause recording"
         case .settingsLaunchAtLogin:
             return "Launch at login"
+        case .settingsLaunchAtLoginEnabledState:
+            return "Status: Enabled"
+        case .settingsLaunchAtLoginDisabledState:
+            return "Status: Disabled"
+        case .settingsLaunchAtLoginFailedFormat:
+            return "Failed: %@"
         case .settingsClearOnSystemRestart:
             return "Clear history after system restart"
         case .settingsClearOnSystemRestartHint:
@@ -385,6 +423,12 @@ enum AppText {
             return "Without permission, selecting an item still copies it to the clipboard."
         case .settingsClearHistory:
             return "Clear History"
+        case .settingsClearHistoryConfirmTitle:
+            return "Clear all clipboard history?"
+        case .settingsClearHistoryConfirmMessage:
+            return "This action permanently deletes saved text and images."
+        case .settingsCancel:
+            return "Cancel"
         case .settingsDone:
             return "Done"
         }
@@ -423,8 +467,12 @@ enum AppText {
             return "요청"
         case .popupOpenSettings:
             return "설정 열기"
+        case .popupDismissPermissionBannerA11y:
+            return "권한 안내 배너 닫기"
         case .popupSearchPlaceholder:
             return "클립보드 기록 검색"
+        case .popupClearSearchA11y:
+            return "검색어 지우기"
         case .popupNoClipboardItems:
             return "클립보드 항목이 없습니다"
         case .popupNoClipboardSubtitle:
@@ -444,6 +492,12 @@ enum AppText {
             return "기록 일시정지"
         case .settingsLaunchAtLogin:
             return "부팅 시 자동 실행"
+        case .settingsLaunchAtLoginEnabledState:
+            return "상태: 활성화됨"
+        case .settingsLaunchAtLoginDisabledState:
+            return "상태: 비활성화됨"
+        case .settingsLaunchAtLoginFailedFormat:
+            return "실패: %@"
         case .settingsClearOnSystemRestart:
             return "시스템 재시작 후 기록 자동 삭제"
         case .settingsClearOnSystemRestartHint:
@@ -488,6 +542,12 @@ enum AppText {
             return "권한이 없어도 항목 선택 시 클립보드에는 복사됩니다."
         case .settingsClearHistory:
             return "기록 비우기"
+        case .settingsClearHistoryConfirmTitle:
+            return "클립보드 기록을 모두 비울까요?"
+        case .settingsClearHistoryConfirmMessage:
+            return "저장된 텍스트와 이미지가 영구적으로 삭제됩니다."
+        case .settingsCancel:
+            return "취소"
         case .settingsDone:
             return "완료"
         }

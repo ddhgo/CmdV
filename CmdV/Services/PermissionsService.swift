@@ -2,7 +2,7 @@ import AppKit
 import ApplicationServices
 import Foundation
 
-final class PermissionsService: NSObject, ObservableObject {
+final class PermissionsService: NSObject, ObservableObject, AccessibilityPermissionChecking {
     @Published private(set) var accessibilityGranted: Bool
     private var refreshTimer: Timer?
     private var refreshAttemptsRemaining = 0
