@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var popupPanelController: PopupPanelController?
     private var settingsWindowController: SettingsWindowController?
     private var statusBarController: StatusBarController?
+    private let spotlightAliasIndexer = SpotlightAliasIndexer()
     private let hotkeyManager = HotkeyManager()
 
     private var previousActiveApplication: NSRunningApplication?
@@ -39,6 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         NSApp.setActivationPolicy(.accessory)
+        spotlightAliasIndexer.indexAppAliasKeywords()
         startTrackingLastActiveApplication()
 
         do {
