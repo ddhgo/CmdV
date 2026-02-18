@@ -1,0 +1,15 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# Build artifacts
+build/
+dist/
+output/
+.venv-imagegen/
+tmp_*.py
+
+# macOS
+.DS_Store
