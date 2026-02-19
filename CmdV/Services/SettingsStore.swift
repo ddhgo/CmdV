@@ -247,6 +247,9 @@ enum AppTextKey {
     case menuHotkeyFormat
     case menuSettings
     case menuQuitCmdV
+    case menuActivationTitle
+    case menuActivationStatusEnabled
+    case menuActivationStatusDisabled
 
     case popupResume
     case popupPause
@@ -259,6 +262,7 @@ enum AppTextKey {
     case popupClear
     case popupWindowTitle
     case popupPermissionBanner
+    case popupRecordingDisabledBanner
     case popupRequest
     case popupOpenSettings
     case popupDismissPermissionBannerA11y
@@ -346,6 +350,12 @@ enum AppText {
             return "Settings..."
         case .menuQuitCmdV:
             return "Quit CmdV"
+        case .menuActivationTitle:
+            return "CmdV"
+        case .menuActivationStatusEnabled:
+            return "Clipboard On"
+        case .menuActivationStatusDisabled:
+            return "Clipboard Off"
 
         case .popupResume:
             return "Resume"
@@ -369,6 +379,8 @@ enum AppText {
             return "Clipboard"
         case .popupPermissionBanner:
             return "Auto-paste requires Accessibility permission. Items still copy to clipboard."
+        case .popupRecordingDisabledBanner:
+            return "CmdV is currently disabled. Turn it on from the menu bar to resume clipboard recording."
         case .popupRequest:
             return "Request"
         case .popupOpenSettings:
@@ -469,6 +481,12 @@ enum AppText {
             return "설정..."
         case .menuQuitCmdV:
             return "CmdV 종료"
+        case .menuActivationTitle:
+            return "CmdV"
+        case .menuActivationStatusEnabled:
+            return "클립보드 활성화"
+        case .menuActivationStatusDisabled:
+            return "클립보드 비활성"
 
         case .popupResume:
             return "재개"
@@ -492,6 +510,8 @@ enum AppText {
             return "클립보드"
         case .popupPermissionBanner:
             return "자동 붙여넣기를 사용하려면 손쉬운 사용 권한이 필요합니다. 항목은 클립보드로 복사됩니다."
+        case .popupRecordingDisabledBanner:
+            return "현재 CmdV가 비활성화 상태입니다. 메뉴바에서 CmdV 활성화를 켜주세요."
         case .popupRequest:
             return "요청"
         case .popupOpenSettings:

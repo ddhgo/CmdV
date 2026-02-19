@@ -88,6 +88,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusBarController?.onOpenSettings = { [weak self] in
             self?.settingsWindowController?.show()
         }
+        statusBarController?.onSetRecordingEnabled = { [weak self] isEnabled in
+            self?.settings.isRecordingPaused = !isEnabled
+        }
         statusBarController?.onQuit = {
             NSApp.terminate(nil)
         }
@@ -161,7 +164,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func registerHotkey() {
         let didRegister = hotkeyManager.register(hotkey: settings.hotkey) { [weak self] in
-            self?.togglePopup()
+            guard let self else {
+                return
+            }
+
+            if self.statusBarController?.handleGlobalHotkeyWhileMenuOpen() == true {
+                return
+            }
+
+            self.togglePopup()
         }
         runtimeState.hotkeyRegistrationFailed = !didRegister
     }

@@ -26,6 +26,7 @@ final class SettingsWindowController {
             createWindow()
         }
 
+        settings.refreshLaunchAtLoginStatus()
         applyPreferredSize()
         window?.title = AppText.value(.settingsTitle, language: settings.appLanguage)
         window?.makeKeyAndOrderFront(nil)

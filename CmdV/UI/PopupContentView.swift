@@ -13,6 +13,10 @@ struct PopupContentView: View {
 
     var body: some View {
         VStack(spacing: 8) {
+            if viewModel.isRecordingPaused {
+                recordingDisabledBanner
+            }
+
             if viewModel.showsPermissionBanner {
                 permissionBanner
             }
@@ -33,6 +37,24 @@ struct PopupContentView: View {
         .onReceive(viewModel.$searchFocusRequestToken) { _ in
             searchFocused = true
         }
+    }
+
+    private var recordingDisabledBanner: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "pause.circle.fill")
+                .foregroundStyle(.orange)
+
+            Text(AppText.value(.popupRecordingDisabledBanner, language: viewModel.appLanguage))
+                .font(.caption)
+                .lineLimit(nil)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.orange.opacity(0.14))
+        )
     }
 
     private var permissionBanner: some View {
@@ -82,30 +104,25 @@ struct PopupContentView: View {
 
     private var searchBar: some View {
         HStack(spacing: 8) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+            brandMark
 
             TextField(AppText.value(.popupSearchPlaceholder, language: viewModel.appLanguage), text: $viewModel.searchQuery)
                 .textFieldStyle(.plain)
                 .focused($searchFocused)
                 .frame(maxWidth: .infinity)
 
-            HStack(spacing: 8) {
-                if !viewModel.searchQuery.isEmpty {
-                    Button {
-                        viewModel.resetSearch()
-                        searchFocused = true
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(
-                        AppText.value(.popupClearSearchA11y, language: viewModel.appLanguage)
-                    )
+            if !viewModel.searchQuery.isEmpty {
+                Button {
+                    viewModel.resetSearch()
+                    searchFocused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
                 }
-
-                brandMark
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    AppText.value(.popupClearSearchA11y, language: viewModel.appLanguage)
+                )
             }
         }
         .padding(.horizontal, 14)
@@ -262,14 +279,15 @@ struct PopupContentView: View {
     private var brandMark: some View {
         if let image = popupBrandImage {
             Image(nsImage: image)
-                .resizable()
                 .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
                 .foregroundStyle(.secondary.opacity(0.75))
-                .frame(width: 14, height: 14)
+                .frame(width: 20, height: 20)
         }
     }
 
     private var popupBrandImage: NSImage? {
-        NSImage(named: "CmdVMenuBarTemplate") ?? NSImage(named: "CmdVMainLogo")
+        NSImage(named: "CmdVMainLogo") ?? NSImage(named: "CmdVMenuBarTemplate")
     }
 }

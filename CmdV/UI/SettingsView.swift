@@ -32,6 +32,9 @@ struct SettingsView: View {
             permissions.refreshStatus()
             settings.refreshLaunchAtLoginStatus()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            settings.refreshLaunchAtLoginStatus()
+        }
         .onPreferenceChange(SettingsLabelWidthPreferenceKey.self) { measuredWidth in
             labelColumnWidth = min(164, max(136, measuredWidth))
         }
@@ -66,25 +69,11 @@ struct SettingsView: View {
                     .frame(width: 148, alignment: .trailing)
                 }
 
-                fieldRow(label: AppText.value(.settingsPauseRecording, language: language)) {
-                    Toggle("", isOn: $settings.isRecordingPaused)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                }
-
                 fieldRow(label: AppText.value(.settingsLaunchAtLogin, language: language)) {
                     Toggle("", isOn: launchAtLoginBinding)
                         .labelsHidden()
                         .toggleStyle(.switch)
                 }
-
-                Text(launchAtLoginStatusText)
-                    .font(.caption)
-                    .foregroundStyle(launchAtLoginStatusColor)
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
 
                 VStack(alignment: .leading, spacing: 4) {
                     clearOnSystemRestartRow
@@ -449,30 +438,6 @@ struct SettingsView: View {
         )
     }
 
-    private var launchAtLoginStatusText: String {
-        switch settings.launchAtLoginFeedback {
-        case .enabled:
-            return AppText.value(.settingsLaunchAtLoginEnabledState, language: language)
-        case .disabled:
-            return AppText.value(.settingsLaunchAtLoginDisabledState, language: language)
-        case let .failed(reason):
-            return String(
-                format: AppText.value(.settingsLaunchAtLoginFailedFormat, language: language),
-                reason
-            )
-        }
-    }
-
-    private var launchAtLoginStatusColor: Color {
-        switch settings.launchAtLoginFeedback {
-        case .failed:
-            return .orange
-        case .enabled:
-            return .green
-        case .disabled:
-            return .secondary
-        }
-    }
 }
 
 private struct SettingsLabelWidthPreferenceKey: PreferenceKey {

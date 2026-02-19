@@ -1,18 +1,108 @@
 import AppKit
+import Carbon.HIToolbox
 import Foundation
 import ImageIO
 
-final class StatusBarController: NSObject {
+private final class MenuActivationHeaderView: NSView {
+    private static let preferredSize = NSSize(width: 244, height: 54)
+
+    var onToggleChanged: ((Bool) -> Void)?
+
+    private let titleLabel = NSTextField(labelWithString: "")
+    private let subtitleLabel = NSTextField(labelWithString: "")
+    private let activationToggle = NSSwitch()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: NSRect(origin: .zero, size: Self.preferredSize))
+        setupUI()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override var intrinsicContentSize: NSSize {
+        Self.preferredSize
+    }
+
+    func update(title: String, subtitle: String, isEnabled: Bool) {
+        titleLabel.stringValue = title
+        subtitleLabel.stringValue = subtitle
+        subtitleLabel.textColor = .secondaryLabelColor
+        activationToggle.isEnabled = true
+        activationToggle.state = isEnabled ? .on : .off
+    }
+
+    private func setupUI() {
+        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
+        titleLabel.textColor = .labelColor
+        titleLabel.lineBreakMode = .byTruncatingTail
+
+        subtitleLabel.font = .systemFont(ofSize: 12, weight: .regular)
+        subtitleLabel.textColor = .secondaryLabelColor
+        subtitleLabel.lineBreakMode = .byTruncatingTail
+
+        activationToggle.target = self
+        activationToggle.action = #selector(handleToggleChanged)
+        activationToggle.controlSize = .regular
+        activationToggle.isEnabled = true
+        activationToggle.translatesAutoresizingMaskIntoConstraints = false
+
+        let spacer = NSView(frame: .zero)
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
+        let textStack = NSStackView(views: [titleLabel, subtitleLabel])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 2
+
+        let rowStack = NSStackView(views: [textStack, spacer, activationToggle])
+        rowStack.orientation = .horizontal
+        rowStack.alignment = .centerY
+        rowStack.spacing = 8
+        rowStack.distribution = .fill
+        rowStack.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(rowStack)
+
+        NSLayoutConstraint.activate([
+            rowStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            rowStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            rowStack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
+            rowStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
+        ])
+    }
+
+    @objc private func handleToggleChanged() {
+        onToggleChanged?(activationToggle.state == .on)
+    }
+}
+
+final class StatusBarController: NSObject, NSMenuDelegate {
     var onTogglePopup: (() -> Void)?
     var onOpenSettings: (() -> Void)?
+    var onSetRecordingEnabled: ((Bool) -> Void)?
     var onQuit: (() -> Void)?
 
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     private let menu = NSMenu()
+    private var menuKeyMonitor: Any?
+    private var menuGlobalKeyMonitor: Any?
+    private var didHandleMenuHotkey = false
+    private var isMenuOpen = false
 
+    private var activationHeaderItem: NSMenuItem!
     private var openItem: NSMenuItem!
     private var settingsItem: NSMenuItem!
     private var quitItem: NSMenuItem!
+    private lazy var activationHeaderView: MenuActivationHeaderView = {
+        let view = MenuActivationHeaderView(frame: NSRect(origin: .zero, size: NSSize(width: 244, height: 54)))
+        view.onToggleChanged = { [weak self] isEnabled in
+            self?.handleRecordingToggleChange(isEnabled: isEnabled)
+        }
+        return view
+    }()
 
     private var appLanguage: AppLanguage = .english
     private var hotkeyConfiguration: HotkeyConfiguration = .default
@@ -40,6 +130,7 @@ final class StatusBarController: NSObject {
     func updateRecordingPaused(_ paused: Bool) {
         isRecordingPaused = paused
         applyStatusIconAppearance()
+        updateActivationHeader()
     }
 
     private func configureStatusItem() {
@@ -148,6 +239,14 @@ final class StatusBarController: NSObject {
 
     private func configureMenu() {
         menu.autoenablesItems = false
+        menu.minimumWidth = 236
+        menu.delegate = self
+
+        activationHeaderItem = NSMenuItem()
+        activationHeaderItem.view = activationHeaderView
+        activationHeaderItem.isEnabled = true
+        activationHeaderItem.target = self
+        activationHeaderItem.action = #selector(handleActivationHeaderClick)
 
         openItem = NSMenuItem(title: "", action: #selector(openHistory), keyEquivalent: "")
         openItem.target = self
@@ -158,6 +257,8 @@ final class StatusBarController: NSObject {
         quitItem = NSMenuItem(title: "", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
 
+        menu.addItem(activationHeaderItem)
+        menu.addItem(.separator())
         menu.addItem(openItem)
         menu.addItem(.separator())
         menu.addItem(settingsItem)
@@ -173,6 +274,25 @@ final class StatusBarController: NSObject {
         openItem.keyEquivalentModifierMask = hotkeyConfiguration.modifiers
         settingsItem.title = AppText.value(.menuSettings, language: appLanguage)
         quitItem.title = AppText.value(.menuQuitCmdV, language: appLanguage)
+        updateActivationHeader()
+    }
+
+    private func updateActivationHeader() {
+        let subtitleKey: AppTextKey = isRecordingPaused
+            ? .menuActivationStatusDisabled
+            : .menuActivationStatusEnabled
+        activationHeaderView.update(
+            title: AppText.value(.menuActivationTitle, language: appLanguage),
+            subtitle: AppText.value(subtitleKey, language: appLanguage),
+            isEnabled: !isRecordingPaused
+        )
+    }
+
+    private func handleRecordingToggleChange(isEnabled: Bool) {
+        isRecordingPaused = !isEnabled
+        applyStatusIconAppearance()
+        updateActivationHeader()
+        onSetRecordingEnabled?(isEnabled)
     }
 
     private func keyEquivalent(for keyCode: UInt32) -> String {
@@ -194,9 +314,17 @@ final class StatusBarController: NSObject {
     }
 
     private func showMenu(anchor button: NSStatusBarButton) {
+        NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps])
+        NSApp.activate(ignoringOtherApps: true)
         button.highlight(true)
-        menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY + 4), in: button)
-        button.highlight(false)
+        DispatchQueue.main.async { [weak self, weak button] in
+            guard let self, let button else {
+                return
+            }
+
+            self.menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY + 4), in: button)
+            button.highlight(false)
+        }
     }
 
     @objc private func openHistory() {
@@ -209,5 +337,121 @@ final class StatusBarController: NSObject {
 
     @objc private func quitApp() {
         onQuit?()
+    }
+
+    @objc private func handleActivationHeaderClick() {}
+
+    func menuWillOpen(_ menu: NSMenu) {
+        isMenuOpen = true
+        didHandleMenuHotkey = false
+        activationHeaderItem.isEnabled = true
+        activationHeaderItem.target = self
+        activationHeaderItem.action = #selector(handleActivationHeaderClick)
+        updateActivationHeader()
+
+        // Avoid delayed menu key-equivalent dispatch; route hotkey through monitors immediately.
+        openItem.keyEquivalent = ""
+        openItem.keyEquivalentModifierMask = []
+        installMenuHotkeyMonitor()
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        isMenuOpen = false
+        didHandleMenuHotkey = false
+        removeMenuHotkeyMonitor()
+        openItem.keyEquivalent = keyEquivalent(for: hotkeyConfiguration.keyCode)
+        openItem.keyEquivalentModifierMask = hotkeyConfiguration.modifiers
+    }
+
+    func dismissMenuIfOpen() {
+        menu.cancelTracking()
+    }
+
+    func handleGlobalHotkeyWhileMenuOpen() -> Bool {
+        guard isMenuOpen else {
+            return false
+        }
+
+        triggerOpenHistoryFromMenuHotkey()
+        return true
+    }
+
+    func menuHasKeyEquivalent(
+        _ menu: NSMenu,
+        for event: NSEvent,
+        target: AutoreleasingUnsafeMutablePointer<AnyObject?>,
+        action: UnsafeMutablePointer<Selector?>
+    ) -> Bool {
+        guard matchesConfiguredHotkey(event) else {
+            return false
+        }
+
+        triggerOpenHistoryFromMenuHotkey()
+        return true
+    }
+
+    private func installMenuHotkeyMonitor() {
+        removeMenuHotkeyMonitor()
+
+        menuKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else {
+                return event
+            }
+
+            if self.matchesConfiguredHotkey(event) {
+                self.triggerOpenHistoryFromMenuHotkey()
+                return nil
+            }
+
+            if Int(event.keyCode) == kVK_Escape {
+                self.menu.cancelTracking()
+                return nil
+            }
+
+            return event
+        }
+
+        menuGlobalKeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self else {
+                return
+            }
+
+            guard self.matchesConfiguredHotkey(event) else {
+                return
+            }
+
+            self.triggerOpenHistoryFromMenuHotkey()
+        }
+    }
+
+    private func triggerOpenHistoryFromMenuHotkey() {
+        guard !didHandleMenuHotkey else {
+            return
+        }
+
+        didHandleMenuHotkey = true
+        menu.cancelTracking()
+        DispatchQueue.main.async { [weak self] in
+            self?.openHistory()
+        }
+    }
+
+    private func removeMenuHotkeyMonitor() {
+        if let menuKeyMonitor {
+            NSEvent.removeMonitor(menuKeyMonitor)
+            self.menuKeyMonitor = nil
+        }
+
+        if let menuGlobalKeyMonitor {
+            NSEvent.removeMonitor(menuGlobalKeyMonitor)
+            self.menuGlobalKeyMonitor = nil
+        }
+    }
+
+    private func matchesConfiguredHotkey(_ event: NSEvent) -> Bool {
+        let supportedFlags: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
+        let inputModifiers = event.modifierFlags.intersection(supportedFlags)
+        return UInt32(event.keyCode) == hotkeyConfiguration.keyCode &&
+            inputModifiers == hotkeyConfiguration.modifiers
     }
 }
