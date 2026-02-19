@@ -51,6 +51,7 @@ struct HistoryRowView: View {
     let language: AppLanguage
     let onMenuOpen: (ClipboardItem) -> Void
     let onMenuClose: () -> Void
+    let onHoverChanged: (ClipboardItem, Bool) -> Void
     let onCopy: (ClipboardItem) -> Void
     let onShare: (ClipboardItem) -> Void
     let onTogglePinned: (ClipboardItem) -> Void
@@ -112,9 +113,14 @@ struct HistoryRowView: View {
                 .stroke(isSelected ? selectedRowStrokeColor : rowStrokeColor, lineWidth: 1)
         )
         .overlay {
-            SecondaryClickCaptureView {
-                onMenuOpen(item)
-            }
+            SecondaryClickCaptureView(
+                onSecondaryClick: {
+                    onMenuOpen(item)
+                },
+                onHoverChanged: { isHovering in
+                    onHoverChanged(item, isHovering)
+                }
+            )
         }
         .overlay(alignment: .bottomTrailing) {
             menuButton
@@ -235,20 +241,69 @@ struct HistoryRowView: View {
 
 private struct SecondaryClickCaptureView: NSViewRepresentable {
     let onSecondaryClick: () -> Void
+    let onHoverChanged: (Bool) -> Void
 
     func makeNSView(context: Context) -> SecondaryClickCaptureNSView {
         let view = SecondaryClickCaptureNSView()
         view.onSecondaryClick = onSecondaryClick
+        view.onHoverChanged = onHoverChanged
         return view
     }
 
     func updateNSView(_ nsView: SecondaryClickCaptureNSView, context: Context) {
         nsView.onSecondaryClick = onSecondaryClick
+        nsView.onHoverChanged = onHoverChanged
     }
 }
 
 private final class SecondaryClickCaptureNSView: NSView {
     var onSecondaryClick: (() -> Void)?
+    var onHoverChanged: ((Bool) -> Void)?
+    private var trackingArea: NSTrackingArea?
+    private var isPointerInside = false
+    private var menuObserver: NSObjectProtocol?
+
+    deinit {
+        if let menuObserver {
+            NotificationCenter.default.removeObserver(menuObserver)
+        }
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        if let menuObserver {
+            NotificationCenter.default.removeObserver(menuObserver)
+            self.menuObserver = nil
+        }
+
+        menuObserver = NotificationCenter.default.addObserver(
+            forName: NSMenu.didEndTrackingNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshHoverStateFromPointer()
+        }
+    }
+
+    override func updateTrackingAreas() {
+        if let trackingArea {
+            removeTrackingArea(trackingArea)
+        }
+
+        let options: NSTrackingArea.Options = [
+            .activeInKeyWindow,
+            .mouseEnteredAndExited,
+            .mouseMoved,
+            .inVisibleRect
+        ]
+
+        let newTrackingArea = NSTrackingArea(rect: .zero, options: options, owner: self, userInfo: nil)
+        addTrackingArea(newTrackingArea)
+        trackingArea = newTrackingArea
+
+        super.updateTrackingAreas()
+    }
 
     override func rightMouseDown(with event: NSEvent) {
         onSecondaryClick?()
@@ -260,6 +315,41 @@ private final class SecondaryClickCaptureNSView: NSView {
             onSecondaryClick?()
         }
         super.mouseDown(with: event)
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        setHover(true)
+        super.mouseEntered(with: event)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        setHover(false)
+        super.mouseExited(with: event)
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        refreshHoverStateFromPointer()
+        super.mouseMoved(with: event)
+    }
+
+    private func refreshHoverStateFromPointer() {
+        guard let window else {
+            setHover(false)
+            return
+        }
+
+        let locationInWindow = window.mouseLocationOutsideOfEventStream
+        let locationInView = convert(locationInWindow, from: nil)
+        setHover(bounds.contains(locationInView))
+    }
+
+    private func setHover(_ isInside: Bool) {
+        guard isPointerInside != isInside else {
+            return
+        }
+
+        isPointerInside = isInside
+        onHoverChanged?(isInside)
     }
 }
 

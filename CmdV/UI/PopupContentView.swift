@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct PopupContentView: View {
@@ -50,6 +51,14 @@ struct PopupContentView: View {
 
             lastExplicitSelectionToken = token
             allowSelectedFallbackHighlight = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSMenu.didEndTrackingNotification)) { _ in
+            guard contextMenuActive || contextMenuItemID != nil else {
+                return
+            }
+
+            contextMenuActive = false
+            contextMenuItemID = nil
         }
     }
 
@@ -186,6 +195,19 @@ struct PopupContentView: View {
                                     contextMenuActive = false
                                     contextMenuItemID = nil
                                 },
+                                onHoverChanged: { hoveredItem, isHovering in
+                                    if isHovering {
+                                        if contextMenuActive {
+                                            contextMenuActive = false
+                                            contextMenuItemID = nil
+                                        }
+
+                                        hoveredItemID = hoveredItem.id
+                                        allowSelectedFallbackHighlight = true
+                                    } else if !contextMenuActive, hoveredItemID == hoveredItem.id {
+                                        hoveredItemID = nil
+                                    }
+                                },
                                 onCopy: { copiedItem in
                                     selectForRowAction(copiedItem)
                                     onCopyOnly(copiedItem)
@@ -210,16 +232,6 @@ struct PopupContentView: View {
                                     hoveredItemID = item.id
                                     allowSelectedFallbackHighlight = true
                                     onConfirm(item)
-                                }
-                                .onHover { isHovering in
-                                    if contextMenuActive {
-                                        return
-                                    }
-
-                                    if isHovering {
-                                        hoveredItemID = item.id
-                                        allowSelectedFallbackHighlight = true
-                                    }
                                 }
                                 .id(item.id)
                         }
