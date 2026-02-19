@@ -8,8 +8,8 @@ struct PopupContentView: View {
     let onShare: (ClipboardItem) -> Void
 
     @FocusState private var searchFocused: Bool
-    @State private var hoveredItemID: Int64?
     @State private var contextMenuItemID: Int64?
+    @State private var hoveredItemID: Int64?
 
     var body: some View {
         VStack(spacing: 8) {
@@ -31,8 +31,8 @@ struct PopupContentView: View {
         .onAppear {
             viewModel.selectFirstIfNeeded()
             searchFocused = true
-            hoveredItemID = nil
             contextMenuItemID = nil
+            hoveredItemID = nil
         }
         .onReceive(viewModel.$searchFocusRequestToken) { _ in
             searchFocused = true
@@ -163,13 +163,16 @@ struct PopupContentView: View {
                                 isSelected: isRowSelected(itemID: item.id),
                                 language: viewModel.appLanguage,
                                 onMenuOpen: { openedItem in
+                                    viewModel.selectedItemID = openedItem.id
                                     contextMenuItemID = openedItem.id
+                                    hoveredItemID = openedItem.id
                                 },
                                 onCopy: { copiedItem in
                                     selectForRowAction(copiedItem)
                                     onCopyOnly(copiedItem)
                                 },
                                 onShare: { sharedItem in
+                                    selectForRowAction(sharedItem)
                                     onShare(sharedItem)
                                 },
                                 onTogglePinned: { toggledItem in
@@ -182,17 +185,16 @@ struct PopupContentView: View {
                                 }
                             )
                                 .contentShape(Rectangle())
+                                .onTapGesture {
+                                    viewModel.selectedItemID = item.id
+                                    contextMenuItemID = nil
+                                    hoveredItemID = item.id
+                                    onConfirm(item)
+                                }
                                 .onHover { isHovering in
                                     if isHovering {
                                         hoveredItemID = item.id
-                                        contextMenuItemID = nil
                                     }
-                                }
-                                .onTapGesture {
-                                    viewModel.selectedItemID = item.id
-                                    hoveredItemID = nil
-                                    contextMenuItemID = nil
-                                    onConfirm(item)
                                 }
                                 .id(item.id)
                         }
@@ -215,8 +217,8 @@ struct PopupContentView: View {
 
     private func selectForRowAction(_ item: ClipboardItem) {
         viewModel.selectedItemID = item.id
-        hoveredItemID = nil
         contextMenuItemID = nil
+        hoveredItemID = item.id
     }
 
     private func isRowSelected(itemID: Int64) -> Bool {
@@ -228,7 +230,11 @@ struct PopupContentView: View {
             return contextMenuItemID == itemID
         }
 
-        return viewModel.selectedItemID == itemID
+        if let selectedItemID = viewModel.selectedItemID {
+            return selectedItemID == itemID
+        }
+
+        return false
     }
 
     private var popupBackgroundColor: Color {

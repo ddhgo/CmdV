@@ -131,6 +131,11 @@ struct HistoryRowView: View {
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                onMenuOpen(item)
+            }
+        )
         .accessibilityLabel(AppText.value(.popupMoreActions, language: language))
     }
 

@@ -244,7 +244,9 @@ final class StatusBarController: NSObject, NSMenuDelegate {
 
         activationHeaderItem = NSMenuItem()
         activationHeaderItem.view = activationHeaderView
+        activationHeaderView.frame = NSRect(x: 0, y: 0, width: 244, height: 54)
         activationHeaderItem.isEnabled = true
+        activationHeaderItem.isHidden = false
         activationHeaderItem.target = self
         activationHeaderItem.action = #selector(handleActivationHeaderClick)
 
@@ -344,14 +346,15 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
         didHandleMenuHotkey = false
+        if activationHeaderItem.view == nil {
+            activationHeaderItem.view = activationHeaderView
+        }
+        activationHeaderView.frame = NSRect(x: 0, y: 0, width: 244, height: 54)
+        activationHeaderItem.isHidden = false
         activationHeaderItem.isEnabled = true
         activationHeaderItem.target = self
         activationHeaderItem.action = #selector(handleActivationHeaderClick)
         updateActivationHeader()
-
-        // Avoid delayed menu key-equivalent dispatch; route hotkey through monitors immediately.
-        openItem.keyEquivalent = ""
-        openItem.keyEquivalentModifierMask = []
         installMenuHotkeyMonitor()
     }
 
@@ -359,8 +362,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         isMenuOpen = false
         didHandleMenuHotkey = false
         removeMenuHotkeyMonitor()
-        openItem.keyEquivalent = keyEquivalent(for: hotkeyConfiguration.keyCode)
-        openItem.keyEquivalentModifierMask = hotkeyConfiguration.modifiers
     }
 
     func dismissMenuIfOpen() {
