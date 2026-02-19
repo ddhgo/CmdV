@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import OSLog
 import ServiceManagement
 
 enum LaunchAtLoginFeedback: Equatable {
@@ -9,6 +10,16 @@ enum LaunchAtLoginFeedback: Equatable {
 }
 
 final class SettingsStore: ObservableObject {
+    static let maxHistoryItemsRange: ClosedRange<Int> = 20...1000
+    static let maxHistoryItemsUIStepperRange: ClosedRange<Int> = 50...1000
+    static let maxHistoryItemsStep = 10
+
+    static let pollingIntervalClampRange: ClosedRange<Double> = 0.2...2.0
+    static let pollingIntervalDisplayRange: ClosedRange<Double> = 0.2...1.5
+    static let pollingIntervalStep = 0.1
+
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.cmdv.app", category: "SettingsStore")
+
     private enum Keys {
         static let maxHistoryItems = "settings.maxHistoryItems"
         static let pollingInterval = "settings.pollingInterval"
@@ -26,7 +37,7 @@ final class SettingsStore: ObservableObject {
 
     @Published var maxHistoryItems: Int {
         didSet {
-            let clamped = max(20, min(1000, maxHistoryItems))
+            let clamped = Self.clamp(maxHistoryItems, to: Self.maxHistoryItemsRange)
             if clamped != maxHistoryItems {
                 maxHistoryItems = clamped
                 return
@@ -37,7 +48,7 @@ final class SettingsStore: ObservableObject {
 
     @Published var pollingInterval: Double {
         didSet {
-            let clamped = max(0.2, min(2.0, pollingInterval))
+            let clamped = Self.clamp(pollingInterval, to: Self.pollingIntervalClampRange)
             if clamped != pollingInterval {
                 pollingInterval = clamped
                 return
@@ -103,10 +114,10 @@ final class SettingsStore: ObservableObject {
         self.defaults = defaults
 
         let maxItemsValue = defaults.object(forKey: Keys.maxHistoryItems) as? Int ?? 200
-        maxHistoryItems = max(20, min(1000, maxItemsValue))
+        maxHistoryItems = Self.clamp(maxItemsValue, to: Self.maxHistoryItemsRange)
 
         let pollingValue = defaults.object(forKey: Keys.pollingInterval) as? Double ?? 0.6
-        pollingInterval = max(0.2, min(2.0, pollingValue))
+        pollingInterval = Self.clamp(pollingValue, to: Self.pollingIntervalClampRange)
 
         isRecordingPaused = defaults.object(forKey: Keys.isRecordingPaused) as? Bool ?? false
         let initialLaunchAtLoginEnabled: Bool
@@ -164,9 +175,13 @@ final class SettingsStore: ObservableObject {
                 return true
             }
 
+            logger.error(
+                "Launch-at-login mismatch. requested=\(enabled, privacy: .public) applied=\(applied, privacy: .public)"
+            )
             launchAtLoginFeedback = .failed("System launch-at-login status did not match the requested value.")
             return false
         } catch {
+            logger.error("Launch-at-login update failed: \(error.localizedDescription, privacy: .public)")
             launchAtLoginEnabled = Self.readSystemLaunchAtLoginEnabled()
             launchAtLoginFeedback = .failed(error.localizedDescription)
             return false
@@ -205,6 +220,10 @@ final class SettingsStore: ObservableObject {
             return false
         }
     }
+
+    private static func clamp<T: Comparable>(_ value: T, to range: ClosedRange<T>) -> T {
+        min(range.upperBound, max(range.lowerBound, value))
+    }
 }
 
 enum AppLanguage: String, CaseIterable, Identifiable {
@@ -236,7 +255,9 @@ enum AppTextKey {
     case popupDelete
     case popupMoreActions
     case popupCopy
+    case popupShare
     case popupClear
+    case popupWindowTitle
     case popupPermissionBanner
     case popupRequest
     case popupOpenSettings
@@ -340,8 +361,12 @@ enum AppText {
             return "More actions"
         case .popupCopy:
             return "Copy"
+        case .popupShare:
+            return "Share"
         case .popupClear:
             return "Clear"
+        case .popupWindowTitle:
+            return "Clipboard"
         case .popupPermissionBanner:
             return "Auto-paste requires Accessibility permission. Items still copy to clipboard."
         case .popupRequest:
@@ -459,8 +484,12 @@ enum AppText {
             return "추가 작업"
         case .popupCopy:
             return "복사"
+        case .popupShare:
+            return "공유"
         case .popupClear:
             return "비우기"
+        case .popupWindowTitle:
+            return "클립보드"
         case .popupPermissionBanner:
             return "자동 붙여넣기를 사용하려면 손쉬운 사용 권한이 필요합니다. 항목은 클립보드로 복사됩니다."
         case .popupRequest:

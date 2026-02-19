@@ -51,11 +51,12 @@ struct HistoryRowView: View {
     let language: AppLanguage
     let onMenuOpen: (ClipboardItem) -> Void
     let onCopy: (ClipboardItem) -> Void
+    let onShare: (ClipboardItem) -> Void
     let onTogglePinned: (ClipboardItem) -> Void
     let onDelete: (ClipboardItem) -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 12) {
             if item.type == .image {
                 if let imagePath = item.imagePath {
                     ThumbnailImageView(path: imagePath)
@@ -93,21 +94,21 @@ struct HistoryRowView: View {
                 }
 
                 Text(RelativeTime.string(from: item.createdAt))
-                    .font(.caption)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            .padding(.trailing, 4)
+            .padding(.trailing, 2)
         }
-        .padding(8)
+        .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(isSelected ? Color.accentColor.opacity(0.22) : rowBackgroundColor)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(isSelected ? selectedRowFillColor : rowBackgroundColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(isSelected ? Color.accentColor.opacity(0.7) : Color.black.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(isSelected ? selectedRowStrokeColor : rowStrokeColor, lineWidth: 1)
         )
         .overlay(alignment: .bottomTrailing) {
             menuButton
@@ -123,10 +124,10 @@ struct HistoryRowView: View {
         Menu {
             rowMenuItems
         } label: {
-            Image(systemName: "ellipsis")
-                .font(.system(size: 12, weight: .semibold))
+            Image(systemName: "ellipsis.circle")
+                .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 14, height: 14, alignment: .center)
+                .frame(width: 16, height: 16, alignment: .center)
         }
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
@@ -142,7 +143,10 @@ struct HistoryRowView: View {
             onMenuOpen(item)
         }
 
-        Divider()
+        if hasShareAction {
+            shareAction
+            Divider()
+        }
 
         Button(item.isPinned ? AppText.value(.popupUnpin, language: language) : AppText.value(.popupPin, language: language)) {
             onTogglePinned(item)
@@ -161,11 +165,60 @@ struct HistoryRowView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.2, blue: 0.21, alpha: 1)
+                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.24, alpha: 1)
                 }
                 return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
             }
         )
+    }
+
+    private var rowStrokeColor: Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                    return NSColor.white.withAlphaComponent(0.06)
+                }
+                return NSColor.black.withAlphaComponent(0.08)
+            }
+        )
+    }
+
+    private var selectedRowFillColor: Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                    return NSColor(srgbRed: 0.2, green: 0.34, blue: 0.54, alpha: 0.45)
+                }
+                return NSColor(srgbRed: 0.36, green: 0.56, blue: 0.92, alpha: 0.24)
+            }
+        )
+    }
+
+    private var selectedRowStrokeColor: Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                    return NSColor(srgbRed: 0.2, green: 0.56, blue: 0.92, alpha: 0.86)
+                }
+                return NSColor(srgbRed: 0.2, green: 0.44, blue: 0.82, alpha: 0.86)
+            }
+        )
+    }
+
+    private var hasShareAction: Bool {
+        switch item.type {
+        case .text:
+            return !(item.textContent?.isEmpty ?? true)
+        case .image:
+            return item.imagePath != nil
+        }
+    }
+
+    @ViewBuilder
+    private var shareAction: some View {
+        Button(AppText.value(.popupShare, language: language)) {
+            onShare(item)
+        }
     }
 }
 

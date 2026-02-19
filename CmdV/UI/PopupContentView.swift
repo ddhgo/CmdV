@@ -5,13 +5,14 @@ struct PopupContentView: View {
 
     let onConfirm: (ClipboardItem) -> Void
     let onCopyOnly: (ClipboardItem) -> Void
+    let onShare: (ClipboardItem) -> Void
 
     @FocusState private var searchFocused: Bool
     @State private var hoveredItemID: Int64?
     @State private var contextMenuItemID: Int64?
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 8) {
             if viewModel.showsPermissionBanner {
                 permissionBanner
             }
@@ -20,7 +21,7 @@ struct PopupContentView: View {
             dividerLine
             contentList
         }
-        .padding(14)
+        .padding(12)
         .frame(minWidth: PopupLayout.minimumWidth, minHeight: PopupLayout.minimumHeight)
         .background(popupBackgroundColor)
         .onAppear {
@@ -74,8 +75,8 @@ struct PopupContentView: View {
         }
         .padding(10)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.orange.opacity(0.15))
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.orange.opacity(0.14))
         )
     }
 
@@ -87,29 +88,35 @@ struct PopupContentView: View {
             TextField(AppText.value(.popupSearchPlaceholder, language: viewModel.appLanguage), text: $viewModel.searchQuery)
                 .textFieldStyle(.plain)
                 .focused($searchFocused)
+                .frame(maxWidth: .infinity)
 
-            if !viewModel.searchQuery.isEmpty {
-                Button {
-                    viewModel.resetSearch()
-                    searchFocused = true
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+            HStack(spacing: 8) {
+                if !viewModel.searchQuery.isEmpty {
+                    Button {
+                        viewModel.resetSearch()
+                        searchFocused = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(
+                        AppText.value(.popupClearSearchA11y, language: viewModel.appLanguage)
+                    )
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(
-                    AppText.value(.popupClearSearchA11y, language: viewModel.appLanguage)
-                )
+
+                brandMark
             }
         }
-        .padding(10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(popupSurfaceColor)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(searchBarBorderColor, lineWidth: 1)
         )
     }
 
@@ -145,6 +152,9 @@ struct PopupContentView: View {
                                     selectForRowAction(copiedItem)
                                     onCopyOnly(copiedItem)
                                 },
+                                onShare: { sharedItem in
+                                    onShare(sharedItem)
+                                },
                                 onTogglePinned: { toggledItem in
                                     selectForRowAction(toggledItem)
                                     viewModel.togglePinned(itemID: toggledItem.id)
@@ -173,6 +183,7 @@ struct PopupContentView: View {
                     .padding(.vertical, 2)
                 }
             }
+            .padding(.horizontal, 2)
             .onReceive(viewModel.$selectedItemID) { selectedID in
                 guard let selectedID else {
                     return
@@ -207,9 +218,9 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.22, green: 0.22, blue: 0.23, alpha: 1)
+                    return NSColor(srgbRed: 0.17, green: 0.18, blue: 0.21, alpha: 1)
                 }
-                return NSColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: 1)
+                return NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 1)
             }
         )
     }
@@ -218,9 +229,9 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.19, green: 0.19, blue: 0.2, alpha: 1)
+                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.25, alpha: 1)
                 }
-                return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
+                return NSColor(srgbRed: 0.97, green: 0.98, blue: 0.99, alpha: 1)
             }
         )
     }
@@ -229,10 +240,36 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor.white.withAlphaComponent(0.1)
+                    return NSColor.white.withAlphaComponent(0.12)
+                }
+                return NSColor.black.withAlphaComponent(0.1)
+            }
+        )
+    }
+
+    private var searchBarBorderColor: Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                    return NSColor.white.withAlphaComponent(0.08)
                 }
                 return NSColor.black.withAlphaComponent(0.08)
             }
         )
+    }
+
+    @ViewBuilder
+    private var brandMark: some View {
+        if let image = popupBrandImage {
+            Image(nsImage: image)
+                .resizable()
+                .renderingMode(.template)
+                .foregroundStyle(.secondary.opacity(0.75))
+                .frame(width: 14, height: 14)
+        }
+    }
+
+    private var popupBrandImage: NSImage? {
+        NSImage(named: "CmdVMenuBarTemplate") ?? NSImage(named: "CmdVMainLogo")
     }
 }

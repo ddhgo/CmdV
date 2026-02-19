@@ -1,8 +1,8 @@
 import CoreGraphics
 
 enum PopupLayout {
-    static let defaultWidth: CGFloat = 420
-    static let defaultHeight: CGFloat = 470
-    static let minimumWidth: CGFloat = 360
-    static let minimumHeight: CGFloat = 340
+    static let defaultWidth: CGFloat = 520
+    static let defaultHeight: CGFloat = 460
+    static let minimumWidth: CGFloat = 420
+    static let minimumHeight: CGFloat = 320
 }

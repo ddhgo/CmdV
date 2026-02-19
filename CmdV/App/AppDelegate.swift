@@ -93,6 +93,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         statusBarController?.updateLanguage(settings.appLanguage)
         statusBarController?.updateHotkey(settings.hotkey)
+        statusBarController?.updateRecordingPaused(settings.isRecordingPaused)
 
         handleHistoryCleanupAfterSystemRestart()
 
@@ -135,6 +136,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
                 self.statusBarController?.updateLanguage(language)
                 self.statusBarController?.updateHotkey(self.settings.hotkey)
+            }
+            .store(in: &cancellables)
+
+        settings.$isRecordingPaused
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] isPaused in
+                self?.statusBarController?.updateRecordingPaused(isPaused)
             }
             .store(in: &cancellables)
 

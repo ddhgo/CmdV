@@ -115,7 +115,12 @@ struct SettingsView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Stepper("", value: pollingIntervalBinding, in: 0.2...1.5, step: 0.1)
+                        Stepper(
+                            "",
+                            value: pollingIntervalBinding,
+                            in: SettingsStore.pollingIntervalDisplayRange,
+                            step: SettingsStore.pollingIntervalStep
+                        )
                             .labelsHidden()
                     }
                 }
@@ -178,7 +183,12 @@ struct SettingsView: View {
 
             Spacer(minLength: 0)
 
-            Stepper("", value: $settings.maxHistoryItems, in: 50...1000, step: 10)
+            Stepper(
+                "",
+                value: $settings.maxHistoryItems,
+                in: SettingsStore.maxHistoryItemsUIStepperRange,
+                step: SettingsStore.maxHistoryItemsStep
+            )
                 .labelsHidden()
         }
     }
@@ -359,7 +369,10 @@ struct SettingsView: View {
             get: { settings.pollingInterval },
             set: { value in
                 let rounded = (value * 10).rounded() / 10
-                settings.pollingInterval = min(1.5, max(0.2, rounded))
+                settings.pollingInterval = min(
+                    SettingsStore.pollingIntervalDisplayRange.upperBound,
+                    max(SettingsStore.pollingIntervalDisplayRange.lowerBound, rounded)
+                )
             }
         )
     }

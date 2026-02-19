@@ -16,6 +16,7 @@ final class PopupPanelController: NSObject, NSWindowDelegate {
     private let viewModel: PopupViewModel
     private var keyMonitor: Any?
     private var permissionMonitorTimer: Timer?
+    private var activeSharingPicker: NSSharingServicePicker?
 
     var isVisible: Bool {
         panel.isVisible
@@ -99,6 +100,9 @@ final class PopupPanelController: NSObject, NSWindowDelegate {
             },
             onCopyOnly: { [weak self] item in
                 self?.onCopyOnly?(item)
+            },
+            onShare: { [weak self] item in
+                self?.presentSharePicker(for: item)
             }
         )
         panel.contentView = NSHostingView(rootView: rootView)
@@ -122,7 +126,7 @@ final class PopupPanelController: NSObject, NSWindowDelegate {
         let panelSize = panel.frame.size
 
         let originX = visibleFrame.midX - panelSize.width / 2
-        let originY = max(visibleFrame.minY + 16, visibleFrame.maxY - panelSize.height - 26)
+        let originY = visibleFrame.midY - panelSize.height / 2
 
         panel.setFrameOrigin(NSPoint(x: originX, y: originY))
     }
@@ -232,6 +236,43 @@ final class PopupPanelController: NSObject, NSWindowDelegate {
         }
 
         return textView.isEditable
+    }
+
+    private func presentSharePicker(for item: ClipboardItem) {
+        let shareItems = itemsForSharing(item: item)
+        guard !shareItems.isEmpty else {
+            NSSound.beep()
+            return
+        }
+
+        guard let contentView = panel.contentView else {
+            NSSound.beep()
+            return
+        }
+
+        let mouseLocation = NSEvent.mouseLocation
+        let pointInWindow = panel.convertPoint(fromScreen: mouseLocation)
+        let pointInView = contentView.convert(pointInWindow, from: nil)
+        let anchorRect = NSRect(x: pointInView.x - 1, y: pointInView.y - 1, width: 2, height: 2)
+
+        let picker = NSSharingServicePicker(items: shareItems)
+        activeSharingPicker = picker
+        picker.show(relativeTo: anchorRect, of: contentView, preferredEdge: .maxY)
+    }
+
+    private func itemsForSharing(item: ClipboardItem) -> [Any] {
+        switch item.type {
+        case .text:
+            guard let text = item.textContent, !text.isEmpty else {
+                return []
+            }
+            return [text]
+        case .image:
+            guard let imagePath = item.imagePath else {
+                return []
+            }
+            return [URL(fileURLWithPath: imagePath)]
+        }
     }
 
     private var popupPanelBackgroundColor: NSColor {

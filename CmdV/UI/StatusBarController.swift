@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import ImageIO
 
 final class StatusBarController: NSObject {
     var onTogglePopup: (() -> Void)?
@@ -15,7 +16,10 @@ final class StatusBarController: NSObject {
 
     private var appLanguage: AppLanguage = .english
     private var hotkeyConfiguration: HotkeyConfiguration = .default
+    private var isRecordingPaused = false
     private let menuBarIconSize = NSSize(width: 20, height: 20)
+    private lazy var activeMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 1.0, alpha: 1.0))
+    private lazy var pausedMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 0.46, alpha: 1.0))
 
     override init() {
         super.init()
@@ -33,40 +37,113 @@ final class StatusBarController: NSObject {
         applyLocalizedText()
     }
 
+    func updateRecordingPaused(_ paused: Bool) {
+        isRecordingPaused = paused
+        applyStatusIconAppearance()
+    }
+
     private func configureStatusItem() {
         if let button = statusItem.button {
-            button.image = makeMenuBarIcon()
+            button.image = activeMenuBarIcon
             button.imageScaling = .scaleProportionallyUpOrDown
+            button.imagePosition = .imageOnly
             button.toolTip = "CmdV"
             button.target = self
             button.action = #selector(handleStatusItemClick(_:))
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            applyStatusIconAppearance()
         }
     }
 
-    private func makeMenuBarIcon() -> NSImage {
-        if let customIcon = NSImage(named: NSImage.Name("CmdVMenuBarTemplate")) {
-            customIcon.isTemplate = true
-            customIcon.size = menuBarIconSize
-            return customIcon
+    private func applyStatusIconAppearance() {
+        guard let button = statusItem.button else {
+            return
+        }
+
+        if isRecordingPaused {
+            button.image = pausedMenuBarIcon
+        } else {
+            button.image = activeMenuBarIcon
+        }
+
+        button.contentTintColor = nil
+        button.alphaValue = 1.0
+    }
+
+    private func makeColoredMenuBarIcon(color: NSColor) -> NSImage {
+        guard let baseCGImage = loadBaseMenuBarCGImage() else {
+            let fallback = NSImage(
+                systemSymbolName: "doc.on.clipboard",
+                accessibilityDescription: "CmdV"
+            ) ?? NSImage(size: menuBarIconSize)
+            fallback.size = menuBarIconSize
+            fallback.isTemplate = false
+            return fallback
+        }
+
+        let width = baseCGImage.width
+        let height = baseCGImage.height
+        let rect = CGRect(x: 0, y: 0, width: width, height: height)
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+
+        guard
+            let context = CGContext(
+                data: nil,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: 0,
+                space: colorSpace,
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            )
+        else {
+            let fallback = NSImage(cgImage: baseCGImage, size: menuBarIconSize)
+            fallback.isTemplate = false
+            return fallback
+        }
+
+        context.interpolationQuality = .high
+        context.clip(to: rect, mask: baseCGImage)
+        context.setFillColor(color.cgColor)
+        context.fill(rect)
+
+        guard let tintedCGImage = context.makeImage() else {
+            let fallback = NSImage(cgImage: baseCGImage, size: menuBarIconSize)
+            fallback.isTemplate = false
+            return fallback
+        }
+
+        let result = NSImage(cgImage: tintedCGImage, size: menuBarIconSize)
+        result.size = menuBarIconSize
+        result.isTemplate = false
+        return result
+    }
+
+    private func loadBaseMenuBarCGImage() -> CGImage? {
+        if
+            let url2x = Bundle.main.url(forResource: "CmdVMenuBarTemplate@2x", withExtension: "png"),
+            let source2x = CGImageSourceCreateWithURL(url2x as CFURL, nil),
+            let image2x = CGImageSourceCreateImageAtIndex(source2x, 0, nil)
+        {
+            return image2x
         }
 
         if
             let url = Bundle.main.url(forResource: "CmdVMenuBarTemplate", withExtension: "png"),
-            let customIcon = NSImage(contentsOf: url)
+            let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+            let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
         {
-            customIcon.isTemplate = true
-            customIcon.size = menuBarIconSize
-            return customIcon
+            return image
         }
 
-        let fallback = NSImage(
-            systemSymbolName: "doc.on.clipboard",
-            accessibilityDescription: "CmdV"
-        ) ?? NSImage(size: menuBarIconSize)
-        fallback.isTemplate = true
-        fallback.size = menuBarIconSize
-        return fallback
+        if
+            let image = NSImage(named: NSImage.Name("CmdVMenuBarTemplate")),
+            let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil)
+        {
+            return cgImage
+        }
+
+        return nil
     }
 
     private func configureMenu() {
