@@ -203,9 +203,18 @@ struct PopupContentView: View {
                                         }
 
                                         hoveredItemID = hoveredItem.id
-                                        allowSelectedFallbackHighlight = true
+                                        // Hover-driven highlight should not fall back to keyboard selection,
+                                        // otherwise row transitions can briefly jump to selectedItemID.
+                                        allowSelectedFallbackHighlight = false
                                     } else if !contextMenuActive, hoveredItemID == hoveredItem.id {
-                                        hoveredItemID = nil
+                                        let exitingItemID = hoveredItem.id
+                                        DispatchQueue.main.async {
+                                            guard !contextMenuActive, hoveredItemID == exitingItemID else {
+                                                return
+                                            }
+
+                                            hoveredItemID = nil
+                                        }
                                     }
                                 },
                                 onCopy: { copiedItem in
