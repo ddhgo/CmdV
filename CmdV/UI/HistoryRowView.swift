@@ -50,6 +50,7 @@ struct HistoryRowView: View {
     let isSelected: Bool
     let language: AppLanguage
     let onMenuOpen: (ClipboardItem) -> Void
+    let onMenuClose: () -> Void
     let onCopy: (ClipboardItem) -> Void
     let onShare: (ClipboardItem) -> Void
     let onTogglePinned: (ClipboardItem) -> Void
@@ -110,6 +111,11 @@ struct HistoryRowView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(isSelected ? selectedRowStrokeColor : rowStrokeColor, lineWidth: 1)
         )
+        .overlay {
+            SecondaryClickCaptureView {
+                onMenuOpen(item)
+            }
+        }
         .overlay(alignment: .bottomTrailing) {
             menuButton
                 .padding(.trailing, 4)
@@ -146,6 +152,9 @@ struct HistoryRowView: View {
         }
         .onAppear {
             onMenuOpen(item)
+        }
+        .onDisappear {
+            onMenuClose()
         }
 
         if hasShareAction {
@@ -224,6 +233,36 @@ struct HistoryRowView: View {
         Button(AppText.value(.popupShare, language: language)) {
             onShare(item)
         }
+    }
+}
+
+private struct SecondaryClickCaptureView: NSViewRepresentable {
+    let onSecondaryClick: () -> Void
+
+    func makeNSView(context: Context) -> SecondaryClickCaptureNSView {
+        let view = SecondaryClickCaptureNSView()
+        view.onSecondaryClick = onSecondaryClick
+        return view
+    }
+
+    func updateNSView(_ nsView: SecondaryClickCaptureNSView, context: Context) {
+        nsView.onSecondaryClick = onSecondaryClick
+    }
+}
+
+private final class SecondaryClickCaptureNSView: NSView {
+    var onSecondaryClick: (() -> Void)?
+
+    override func rightMouseDown(with event: NSEvent) {
+        onSecondaryClick?()
+        super.rightMouseDown(with: event)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        if event.modifierFlags.contains(.control) {
+            onSecondaryClick?()
+        }
+        super.mouseDown(with: event)
     }
 }
 

@@ -10,6 +10,7 @@ struct PopupContentView: View {
     @FocusState private var searchFocused: Bool
     @State private var contextMenuItemID: Int64?
     @State private var hoveredItemID: Int64?
+    @State private var contextMenuActive = false
 
     var body: some View {
         VStack(spacing: 8) {
@@ -33,6 +34,7 @@ struct PopupContentView: View {
             searchFocused = true
             contextMenuItemID = nil
             hoveredItemID = nil
+            contextMenuActive = false
         }
         .onReceive(viewModel.$searchFocusRequestToken) { _ in
             searchFocused = true
@@ -163,9 +165,13 @@ struct PopupContentView: View {
                                 isSelected: isRowSelected(itemID: item.id),
                                 language: viewModel.appLanguage,
                                 onMenuOpen: { openedItem in
-                                    viewModel.selectedItemID = openedItem.id
                                     contextMenuItemID = openedItem.id
                                     hoveredItemID = openedItem.id
+                                    contextMenuActive = true
+                                },
+                                onMenuClose: {
+                                    contextMenuActive = false
+                                    contextMenuItemID = nil
                                 },
                                 onCopy: { copiedItem in
                                     selectForRowAction(copiedItem)
@@ -192,6 +198,10 @@ struct PopupContentView: View {
                                     onConfirm(item)
                                 }
                                 .onHover { isHovering in
+                                    if contextMenuActive {
+                                        return
+                                    }
+
                                     if isHovering {
                                         hoveredItemID = item.id
                                     }
@@ -219,9 +229,14 @@ struct PopupContentView: View {
         viewModel.selectedItemID = item.id
         contextMenuItemID = nil
         hoveredItemID = item.id
+        contextMenuActive = false
     }
 
     private func isRowSelected(itemID: Int64) -> Bool {
+        if contextMenuActive, let contextMenuItemID {
+            return contextMenuItemID == itemID
+        }
+
         if let hoveredItemID {
             return hoveredItemID == itemID
         }
