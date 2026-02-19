@@ -19,6 +19,10 @@ final class SettingsStore: ObservableObject {
     static let pollingIntervalStep = 0.1
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.cmdv.app", category: "SettingsStore")
+    private let persistenceQueue = DispatchQueue(
+        label: "CmdV.SettingsStorePersistenceQueue",
+        qos: .utility
+    )
 
     private enum Keys {
         static let maxHistoryItems = "settings.maxHistoryItems"
@@ -59,7 +63,11 @@ final class SettingsStore: ObservableObject {
 
     @Published var isRecordingPaused: Bool {
         didSet {
-            defaults.set(isRecordingPaused, forKey: Keys.isRecordingPaused)
+            let newValue = isRecordingPaused
+            let defaults = self.defaults
+            persistenceQueue.async {
+                defaults.set(newValue, forKey: Keys.isRecordingPaused)
+            }
         }
     }
 

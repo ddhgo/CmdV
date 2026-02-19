@@ -3,6 +3,22 @@ import Carbon.HIToolbox
 import Foundation
 import ImageIO
 
+private final class InstantNSSwitch: NSSwitch {
+    override func mouseDown(with event: NSEvent) {
+        guard isEnabled else {
+            super.mouseDown(with: event)
+            return
+        }
+
+        let nextState: NSControl.StateValue = (state == .on) ? .off : .on
+        state = nextState
+        displayIfNeeded()
+        superview?.displayIfNeeded()
+        window?.displayIfNeeded()
+        _ = sendAction(action, to: target)
+    }
+}
+
 private final class MenuActivationHeaderView: NSView {
     private static let preferredSize = NSSize(width: 244, height: 54)
 
@@ -10,7 +26,7 @@ private final class MenuActivationHeaderView: NSView {
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
-    private let activationToggle = NSSwitch()
+    private let activationToggle = InstantNSSwitch()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: NSRect(origin: .zero, size: Self.preferredSize))
@@ -30,7 +46,13 @@ private final class MenuActivationHeaderView: NSView {
         subtitleLabel.stringValue = subtitle
         subtitleLabel.textColor = .secondaryLabelColor
         activationToggle.isEnabled = true
-        activationToggle.state = isEnabled ? .on : .off
+        let targetState: NSControl.StateValue = isEnabled ? .on : .off
+        if activationToggle.state != targetState {
+            activationToggle.state = targetState
+        }
+        needsLayout = true
+        layoutSubtreeIfNeeded()
+        displayIfNeeded()
     }
 
     private func setupUI() {
@@ -109,7 +131,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var isRecordingPaused = false
     private let menuBarIconSize = NSSize(width: 20, height: 20)
     private lazy var activeMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 1.0, alpha: 1.0))
-    private lazy var pausedMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 0.46, alpha: 1.0))
+    private lazy var pausedMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 0.62, alpha: 1.0))
 
     override init() {
         super.init()
