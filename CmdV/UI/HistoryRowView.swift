@@ -150,9 +150,6 @@ struct HistoryRowView: View {
         Button(AppText.value(.popupCopy, language: language)) {
             onCopy(item)
         }
-        .onAppear {
-            onMenuOpen(item)
-        }
         .onDisappear {
             onMenuClose()
         }

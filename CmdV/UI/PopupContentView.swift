@@ -11,6 +11,8 @@ struct PopupContentView: View {
     @State private var contextMenuItemID: Int64?
     @State private var hoveredItemID: Int64?
     @State private var contextMenuActive = false
+    @State private var allowSelectedFallbackHighlight = false
+    @State private var lastExplicitSelectionToken = 0
 
     var body: some View {
         VStack(spacing: 8) {
@@ -30,14 +32,24 @@ struct PopupContentView: View {
         .frame(minWidth: PopupLayout.minimumWidth, minHeight: PopupLayout.minimumHeight)
         .background(popupBackgroundColor)
         .onAppear {
-            viewModel.selectFirstIfNeeded()
-            searchFocused = true
             contextMenuItemID = nil
             hoveredItemID = nil
             contextMenuActive = false
+            allowSelectedFallbackHighlight = false
+            lastExplicitSelectionToken = viewModel.explicitSelectionToken
+            viewModel.selectFirstIfNeeded()
+            searchFocused = true
         }
         .onReceive(viewModel.$searchFocusRequestToken) { _ in
             searchFocused = true
+        }
+        .onReceive(viewModel.$explicitSelectionToken) { token in
+            guard token != lastExplicitSelectionToken else {
+                return
+            }
+
+            lastExplicitSelectionToken = token
+            allowSelectedFallbackHighlight = true
         }
     }
 
@@ -168,6 +180,7 @@ struct PopupContentView: View {
                                     contextMenuItemID = openedItem.id
                                     hoveredItemID = openedItem.id
                                     contextMenuActive = true
+                                    allowSelectedFallbackHighlight = true
                                 },
                                 onMenuClose: {
                                     contextMenuActive = false
@@ -195,6 +208,7 @@ struct PopupContentView: View {
                                     viewModel.selectedItemID = item.id
                                     contextMenuItemID = nil
                                     hoveredItemID = item.id
+                                    allowSelectedFallbackHighlight = true
                                     onConfirm(item)
                                 }
                                 .onHover { isHovering in
@@ -204,6 +218,7 @@ struct PopupContentView: View {
 
                                     if isHovering {
                                         hoveredItemID = item.id
+                                        allowSelectedFallbackHighlight = true
                                     }
                                 }
                                 .id(item.id)
@@ -215,6 +230,10 @@ struct PopupContentView: View {
             .padding(.horizontal, 2)
             .onReceive(viewModel.$selectedItemID) { selectedID in
                 guard let selectedID else {
+                    return
+                }
+
+                guard allowSelectedFallbackHighlight || contextMenuActive else {
                     return
                 }
 
@@ -230,6 +249,7 @@ struct PopupContentView: View {
         contextMenuItemID = nil
         hoveredItemID = item.id
         contextMenuActive = false
+        allowSelectedFallbackHighlight = true
     }
 
     private func isRowSelected(itemID: Int64) -> Bool {
@@ -245,7 +265,7 @@ struct PopupContentView: View {
             return contextMenuItemID == itemID
         }
 
-        if let selectedItemID = viewModel.selectedItemID {
+        if allowSelectedFallbackHighlight, let selectedItemID = viewModel.selectedItemID {
             return selectedItemID == itemID
         }
 

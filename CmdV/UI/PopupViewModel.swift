@@ -14,6 +14,7 @@ final class PopupViewModel: ObservableObject {
     @Published private(set) var showsPermissionBanner: Bool = false
     @Published private(set) var appLanguage: AppLanguage = .english
     @Published var searchFocusRequestToken: Int = 0
+    @Published var explicitSelectionToken: Int = 0
 
     private let historyStore: HistoryStore
     private let settings: SettingsStore
@@ -105,11 +106,13 @@ final class PopupViewModel: ObservableObject {
             let currentIndex = items.firstIndex(where: { $0.id == selectedItemID })
         else {
             self.selectedItemID = items.first?.id
+            markSelectionExplicit()
             return
         }
 
         let newIndex = max(currentIndex - 1, 0)
         self.selectedItemID = items[newIndex].id
+        markSelectionExplicit()
     }
 
     func selectNext() {
@@ -124,11 +127,13 @@ final class PopupViewModel: ObservableObject {
             let currentIndex = items.firstIndex(where: { $0.id == selectedItemID })
         else {
             self.selectedItemID = items.first?.id
+            markSelectionExplicit()
             return
         }
 
         let newIndex = min(currentIndex + 1, items.count - 1)
         self.selectedItemID = items[newIndex].id
+        markSelectionExplicit()
     }
 
     func deleteSelected() {
@@ -220,5 +225,9 @@ final class PopupViewModel: ObservableObject {
         }
 
         selectedItemID = visibleItems.first?.id
+    }
+
+    private func markSelectionExplicit() {
+        explicitSelectionToken += 1
     }
 }
