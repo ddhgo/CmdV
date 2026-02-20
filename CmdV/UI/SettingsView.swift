@@ -25,7 +25,7 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
             .padding(.top, 14)
-            .padding(.bottom, 14)
+                .padding(.bottom, 8)
         }
         .onAppear {
             permissions.refreshStatus()
@@ -54,9 +54,9 @@ struct SettingsView: View {
     static func preferredWindowSize(for language: AppLanguage) -> CGSize {
         switch language {
         case .english:
-            return CGSize(width: 540, height: 450)
+            return CGSize(width: 540, height: 360)
         case .korean:
-            return CGSize(width: 540, height: 450)
+            return CGSize(width: 540, height: 360)
         }
     }
 
