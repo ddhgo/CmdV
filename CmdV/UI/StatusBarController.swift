@@ -11,7 +11,11 @@ private final class InstantNSSwitch: NSSwitch {
         }
 
         let nextState: NSControl.StateValue = (state == .on) ? .off : .on
-        state = nextState
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.10
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            animator().state = nextState
+        }
         displayIfNeeded()
         superview?.displayIfNeeded()
         window?.displayIfNeeded()
