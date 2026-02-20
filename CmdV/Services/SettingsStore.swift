@@ -533,7 +533,7 @@ enum AppText {
         case .popupShare:
             return "공유"
         case .popupClear:
-            return "비우기"
+            return "모두 삭제"
         case .popupWindowTitle:
             return "클립보드"
         case .popupPermissionBanner:

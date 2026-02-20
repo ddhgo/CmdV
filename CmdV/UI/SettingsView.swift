@@ -10,7 +10,6 @@ struct SettingsView: View {
     let onClose: () -> Void
 
     @State private var labelColumnWidth: CGFloat = 148
-    @State private var showClearHistoryConfirmation = false
 
     private var language: AppLanguage {
         settings.appLanguage
@@ -121,30 +120,7 @@ struct SettingsView: View {
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
-
-                HStack {
-                    Spacer(minLength: 0)
-
-                    Button(role: .destructive) {
-                        showClearHistoryConfirmation = true
-                    } label: {
-                        Text(AppText.value(.settingsClearHistory, language: language))
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
             }
-        }
-        .alert(
-            AppText.value(.settingsClearHistoryConfirmTitle, language: language),
-            isPresented: $showClearHistoryConfirmation
-        ) {
-            Button(AppText.value(.settingsCancel, language: language), role: .cancel) {}
-            Button(AppText.value(.settingsClearHistory, language: language), role: .destructive) {
-                onClearHistory()
-            }
-        } message: {
-            Text(AppText.value(.settingsClearHistoryConfirmMessage, language: language))
         }
     }
 

@@ -128,7 +128,13 @@ struct PopupContentView: View {
     private var searchHeader: some View {
         HStack(spacing: 8) {
             searchBar
-            favoritesTabButton
+
+            HStack(spacing: 8) {
+                clearAllButton
+                favoritesTabButton
+            }
+            .frame(width: 136, alignment: .trailing)
+            .layoutPriority(2)
         }
     }
 
@@ -165,6 +171,29 @@ struct PopupContentView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(searchBarBorderColor, lineWidth: 1)
         )
+        .layoutPriority(0)
+    }
+
+    private var clearAllButton: some View {
+        Button {
+            viewModel.clearHistory()
+        } label: {
+            Text(AppText.value(.popupClear, language: viewModel.appLanguage))
+                .font(.system(size: 13, weight: .semibold))
+                .lineLimit(1)
+                .frame(width: 88, height: 36)
+                .foregroundStyle(Color.primary.opacity(0.95))
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(popupSurfaceColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(searchBarBorderColor, lineWidth: 1)
+        )
+        .accessibilityLabel(AppText.value(.popupClear, language: viewModel.appLanguage))
     }
 
     private var favoritesTabButton: some View {
