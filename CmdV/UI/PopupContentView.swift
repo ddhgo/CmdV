@@ -25,7 +25,7 @@ struct PopupContentView: View {
                 permissionBanner
             }
 
-            searchBar
+            searchHeader
             dividerLine
             contentList
         }
@@ -125,6 +125,13 @@ struct PopupContentView: View {
         )
     }
 
+    private var searchHeader: some View {
+        HStack(spacing: 8) {
+            searchBar
+            favoritesTabButton
+        }
+    }
+
     private var searchBar: some View {
         HStack(spacing: 8) {
             brandMark
@@ -158,6 +165,27 @@ struct PopupContentView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(searchBarBorderColor, lineWidth: 1)
         )
+    }
+
+    private var favoritesTabButton: some View {
+        Button {
+            viewModel.toggleFavoritesTab()
+        } label: {
+            Image(systemName: viewModel.activeTab == .favorites ? "star.fill" : "star")
+                .font(.system(size: 14, weight: .semibold))
+                .frame(width: 36, height: 36)
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(viewModel.activeTab == .favorites ? Color.white : .secondary.opacity(0.9))
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(viewModel.activeTab == .favorites ? selectedRowStrokeColor : popupSurfaceColor)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(searchBarBorderColor, lineWidth: 1)
+        )
+        .accessibilityLabel(AppText.value(.popupFavoritesTab, language: viewModel.appLanguage))
     }
 
     private var dividerLine: some View {
@@ -229,6 +257,10 @@ struct PopupContentView: View {
                                     selectForRowAction(toggledItem)
                                     viewModel.togglePinned(itemID: toggledItem.id)
                                 },
+                                onToggleFavorited: { toggledItem in
+                                    selectForRowAction(toggledItem)
+                                    viewModel.toggleFavorited(itemID: toggledItem.id)
+                                },
                                 onDelete: { deletedItem in
                                     selectForRowAction(deletedItem)
                                     viewModel.delete(itemID: deletedItem.id)
@@ -297,9 +329,9 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.17, green: 0.18, blue: 0.21, alpha: 1)
+                    return NSColor(srgbRed: 0.16, green: 0.17, blue: 0.19, alpha: 0.9)
                 }
-                return NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 1)
+                return NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 0.93)
             }
         )
     }
@@ -308,7 +340,7 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.25, alpha: 1)
+                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.24, alpha: 0.88)
                 }
                 return NSColor(srgbRed: 0.97, green: 0.98, blue: 0.99, alpha: 1)
             }
@@ -319,7 +351,7 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor.white.withAlphaComponent(0.12)
+                    return NSColor.white.withAlphaComponent(0.1)
                 }
                 return NSColor.black.withAlphaComponent(0.1)
             }
@@ -330,9 +362,20 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor.white.withAlphaComponent(0.08)
+                    return NSColor.white.withAlphaComponent(0.12)
                 }
                 return NSColor.black.withAlphaComponent(0.08)
+            }
+        )
+    }
+
+    private var selectedRowStrokeColor: Color {
+        Color(
+            nsColor: NSColor(name: nil) { appearance in
+                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                    return NSColor(srgbRed: 0.48, green: 0.56, blue: 0.68, alpha: 0.9)
+                }
+                return NSColor(srgbRed: 0.34, green: 0.45, blue: 0.6, alpha: 0.86)
             }
         )
     }

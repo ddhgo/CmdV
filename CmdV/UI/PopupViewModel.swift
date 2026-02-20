@@ -1,11 +1,21 @@
 import Combine
 import Foundation
 
+enum PopupListTab {
+    case history
+    case favorites
+}
+
 final class PopupViewModel: ObservableObject {
     @Published private(set) var allItems: [ClipboardItem] = []
     @Published var searchQuery: String = "" {
         didSet {
             ensureSelectionValid()
+        }
+    }
+    @Published var activeTab: PopupListTab = .history {
+        didSet {
+            ensureSelectionValid(forceSelectFirst: true)
         }
     }
     @Published var selectedItemID: Int64?
@@ -66,12 +76,20 @@ final class PopupViewModel: ObservableObject {
     }
 
     var filteredItems: [ClipboardItem] {
-        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else {
-            return allItems
+        let tabItems: [ClipboardItem]
+        switch activeTab {
+        case .history:
+            tabItems = allItems
+        case .favorites:
+            tabItems = allItems.filter(\.isFavorited)
         }
 
-        return allItems.filter { item in
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return tabItems
+        }
+
+        return tabItems.filter { item in
             switch item.type {
             case .text:
                 return item.textContent?.localizedCaseInsensitiveContains(query) ?? false
@@ -162,6 +180,18 @@ final class PopupViewModel: ObservableObject {
         }
 
         historyStore.setPinned(itemID: itemID, isPinned: !item.isPinned)
+    }
+
+    func toggleFavorited(itemID: Int64) {
+        guard let item = allItems.first(where: { $0.id == itemID }) else {
+            return
+        }
+
+        historyStore.setFavorited(itemID: itemID, isFavorited: !item.isFavorited)
+    }
+
+    func toggleFavoritesTab() {
+        activeTab = (activeTab == .history) ? .favorites : .history
     }
 
     func clearHistory() {

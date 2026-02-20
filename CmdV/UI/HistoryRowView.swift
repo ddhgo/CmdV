@@ -55,6 +55,7 @@ struct HistoryRowView: View {
     let onCopy: (ClipboardItem) -> Void
     let onShare: (ClipboardItem) -> Void
     let onTogglePinned: (ClipboardItem) -> Void
+    let onToggleFavorited: (ClipboardItem) -> Void
     let onDelete: (ClipboardItem) -> Void
 
     var body: some View {
@@ -89,10 +90,18 @@ struct HistoryRowView: View {
             Spacer(minLength: 8)
 
             VStack(alignment: .trailing, spacing: 6) {
-                if item.isPinned {
-                    Image(systemName: "pin.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
+                HStack(spacing: 6) {
+                    if item.isPinned {
+                        Image(systemName: "pin.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
+
+                    if item.isFavorited {
+                        Image(systemName: "star.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.yellow)
+                    }
                 }
 
                 Text(RelativeTime.string(from: item.createdAt))
@@ -169,6 +178,10 @@ struct HistoryRowView: View {
             onTogglePinned(item)
         }
 
+        Button(item.isFavorited ? AppText.value(.popupUnfavorite, language: language) : AppText.value(.popupFavorite, language: language)) {
+            onToggleFavorited(item)
+        }
+
         Divider()
 
         Button(role: .destructive) {
@@ -182,7 +195,7 @@ struct HistoryRowView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.24, alpha: 1)
+                    return NSColor(srgbRed: 0.21, green: 0.22, blue: 0.25, alpha: 0.86)
                 }
                 return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
             }
@@ -204,9 +217,9 @@ struct HistoryRowView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.34, blue: 0.54, alpha: 0.45)
+                    return NSColor(srgbRed: 0.31, green: 0.35, blue: 0.42, alpha: 0.54)
                 }
-                return NSColor(srgbRed: 0.36, green: 0.56, blue: 0.92, alpha: 0.24)
+                return NSColor(srgbRed: 0.42, green: 0.5, blue: 0.62, alpha: 0.24)
             }
         )
     }
@@ -215,9 +228,9 @@ struct HistoryRowView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.56, blue: 0.92, alpha: 0.86)
+                    return NSColor(srgbRed: 0.48, green: 0.56, blue: 0.68, alpha: 0.9)
                 }
-                return NSColor(srgbRed: 0.2, green: 0.44, blue: 0.82, alpha: 0.86)
+                return NSColor(srgbRed: 0.34, green: 0.45, blue: 0.6, alpha: 0.86)
             }
         )
     }

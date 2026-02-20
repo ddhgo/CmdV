@@ -14,4 +14,5 @@ struct ClipboardItem: Identifiable, Hashable {
     let createdAt: Date
     let sourceBundleID: String?
     let isPinned: Bool
+    let isFavorited: Bool
 }

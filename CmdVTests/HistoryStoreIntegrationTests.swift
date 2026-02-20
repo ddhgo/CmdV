@@ -102,6 +102,34 @@ final class HistoryStoreIntegrationTests: XCTestCase {
         XCTAssertEqual(Set(texts), Set(["B", "C"]))
     }
 
+    func testTrimKeepsFavoritedItemsWhenCapacityIsSmall() {
+        historyStore.addTextIfNeeded("Favorite Item", sourceBundleID: nil)
+        waitUntil("favorite candidate inserted") {
+            self.historyStore.items.count == 1
+        }
+
+        guard let favoriteID = historyStore.items.first?.id else {
+            XCTFail("Expected an inserted item")
+            return
+        }
+
+        historyStore.setFavorited(itemID: favoriteID, isFavorited: true)
+        waitUntil("item favorited") {
+            self.historyStore.items.first?.isFavorited == true
+        }
+
+        historyStore.addTextIfNeeded("Newest Item", sourceBundleID: nil)
+        historyStore.trimToCapacity(limit: 1)
+        historyStore.loadInitialHistory()
+        waitUntil("favorite + newest are both present") {
+            self.historyStore.items.count == 2
+        }
+
+        let texts = Set(historyStore.items.compactMap(\.textContent))
+        XCTAssertEqual(texts, Set(["Favorite Item", "Newest Item"]))
+        XCTAssertTrue(historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited }))
+    }
+
     private func waitUntil(
         _ description: String,
         timeout: TimeInterval = 2.0,

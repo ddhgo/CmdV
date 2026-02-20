@@ -183,4 +183,39 @@ final class SQLiteHistoryDatabaseTests: XCTestCase {
         XCTAssertTrue(items[0].isPinned)
         XCTAssertEqual(items[1].textContent, "recent-unpinned")
     }
+
+    func testTrimCapacityKeepsFavoritedItems() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_400)
+
+        let favoritedID = database.insertText(
+            text: "favorite-item",
+            hash: "hash-favorite",
+            createdAt: baseDate,
+            sourceBundleID: nil
+        )
+
+        _ = database.insertImage(
+            imagePath: "/tmp/recent-image.png",
+            hash: "hash-recent-image",
+            createdAt: baseDate.addingTimeInterval(20),
+            sourceBundleID: nil
+        )
+
+        _ = database.insertImage(
+            imagePath: "/tmp/old-image.png",
+            hash: "hash-old-image",
+            createdAt: baseDate.addingTimeInterval(10),
+            sourceBundleID: nil
+        )
+
+        database.setFavorited(itemID: favoritedID, isFavorited: true)
+
+        let removedPaths = Set(database.trimToCapacity(1))
+        let items = database.fetchRecentItems(limit: 10)
+
+        XCTAssertEqual(removedPaths, Set(["/tmp/old-image.png"]))
+        XCTAssertEqual(items.count, 2)
+        XCTAssertTrue(items.contains(where: { $0.id == favoritedID && $0.isFavorited }))
+    }
 }

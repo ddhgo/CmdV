@@ -32,13 +32,17 @@ final class SQLiteHistoryDatabase {
                     content_hash TEXT NOT NULL,
                     created_at REAL NOT NULL,
                     source_bundle_id TEXT,
-                    is_pinned INTEGER NOT NULL DEFAULT 0
+                    is_pinned INTEGER NOT NULL DEFAULT 0,
+                    is_favorited INTEGER NOT NULL DEFAULT 0
                 );
                 """
             )
 
             if !hasColumn(named: "is_pinned", in: "history_items") {
                 try execute("ALTER TABLE history_items ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0;")
+            }
+            if !hasColumn(named: "is_favorited", in: "history_items") {
+                try execute("ALTER TABLE history_items ADD COLUMN is_favorited INTEGER NOT NULL DEFAULT 0;")
             }
 
             try execute(
@@ -58,7 +62,7 @@ final class SQLiteHistoryDatabase {
     func fetchRecentItems(limit: Int) -> [ClipboardItem] {
         guard let statement = prepare(
             """
-            SELECT id, type, text_content, image_path, content_hash, created_at, source_bundle_id, is_pinned
+            SELECT id, type, text_content, image_path, content_hash, created_at, source_bundle_id, is_pinned, is_favorited
             FROM history_items
             ORDER BY is_pinned DESC, created_at DESC, id DESC
             LIMIT ?;
@@ -81,6 +85,7 @@ final class SQLiteHistoryDatabase {
             let timestamp = sqlite3_column_double(statement, 5)
             let sourceBundleID = columnString(statement: statement, at: 6)
             let isPinned = sqlite3_column_int(statement, 7) == 1
+            let isFavorited = sqlite3_column_int(statement, 8) == 1
 
             let item = ClipboardItem(
                 id: id,
@@ -90,7 +95,8 @@ final class SQLiteHistoryDatabase {
                 contentHash: contentHash,
                 createdAt: Date(timeIntervalSince1970: timestamp),
                 sourceBundleID: sourceBundleID,
-                isPinned: isPinned
+                isPinned: isPinned,
+                isFavorited: isFavorited
             )
             results.append(item)
         }
@@ -203,6 +209,17 @@ final class SQLiteHistoryDatabase {
         _ = sqlite3_step(statement)
     }
 
+    func setFavorited(itemID: Int64, isFavorited: Bool) {
+        guard let statement = prepare("UPDATE history_items SET is_favorited = ? WHERE id = ?;") else {
+            return
+        }
+
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_int(statement, 1, isFavorited ? 1 : 0)
+        sqlite3_bind_int64(statement, 2, itemID)
+        _ = sqlite3_step(statement)
+    }
+
     func clearAll() -> [String] {
         var removedPaths: [String] = []
 
@@ -238,10 +255,12 @@ final class SQLiteHistoryDatabase {
             FROM history_items
             WHERE image_path IS NOT NULL
               AND is_pinned = 0
+              AND is_favorited = 0
               AND id IN (
                   SELECT id
                   FROM history_items
                   WHERE is_pinned = 0
+                    AND is_favorited = 0
                   ORDER BY created_at DESC, id DESC
                   LIMIT -1 OFFSET ?
               );
@@ -264,6 +283,7 @@ final class SQLiteHistoryDatabase {
                 SELECT id
                 FROM history_items
                 WHERE is_pinned = 0
+                  AND is_favorited = 0
                 ORDER BY created_at DESC, id DESC
                 LIMIT -1 OFFSET ?
             );

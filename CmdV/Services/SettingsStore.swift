@@ -263,6 +263,10 @@ enum AppTextKey {
     case popupPause
     case popupPin
     case popupUnpin
+    case popupFavorite
+    case popupUnfavorite
+    case popupFavoritesTab
+    case popupAllTab
     case popupDelete
     case popupMoreActions
     case popupCopy
@@ -373,6 +377,14 @@ enum AppText {
             return "Pin"
         case .popupUnpin:
             return "Unpin"
+        case .popupFavorite:
+            return "Favorite"
+        case .popupUnfavorite:
+            return "Remove Favorite"
+        case .popupFavoritesTab:
+            return "Favorites"
+        case .popupAllTab:
+            return "All"
         case .popupDelete:
             return "Delete"
         case .popupMoreActions:
@@ -504,6 +516,14 @@ enum AppText {
             return "고정"
         case .popupUnpin:
             return "고정 해제"
+        case .popupFavorite:
+            return "즐겨찾기"
+        case .popupUnfavorite:
+            return "즐겨찾기 해제"
+        case .popupFavoritesTab:
+            return "즐겨찾기"
+        case .popupAllTab:
+            return "전체"
         case .popupDelete:
             return "삭제"
         case .popupMoreActions:

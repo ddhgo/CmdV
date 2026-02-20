@@ -233,7 +233,8 @@ final class PasteServiceTests: XCTestCase {
             contentHash: "hash-text",
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
             sourceBundleID: nil,
-            isPinned: false
+            isPinned: false,
+            isFavorited: false
         )
     }
 
@@ -246,7 +247,8 @@ final class PasteServiceTests: XCTestCase {
             contentHash: "hash-image",
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
             sourceBundleID: nil,
-            isPinned: false
+            isPinned: false,
+            isFavorited: false
         )
     }
 

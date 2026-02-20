@@ -151,6 +151,18 @@ final class HistoryStore: ObservableObject {
         }
     }
 
+    func setFavorited(itemID: Int64, isFavorited: Bool) {
+        let capacity = currentCapacitySnapshot()
+        queue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.database.setFavorited(itemID: itemID, isFavorited: isFavorited)
+            self.publishLatestItems(limit: capacity)
+        }
+    }
+
     func clearHistory() {
         let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
