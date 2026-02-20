@@ -10,6 +10,7 @@ struct SettingsView: View {
     let onClose: () -> Void
 
     @State private var labelColumnWidth: CGFloat = 148
+    private let compactCardHeight: CGFloat = 60
 
     private var language: AppLanguage {
         settings.appLanguage
@@ -19,8 +20,7 @@ struct SettingsView: View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 12) {
                 generalSection
-                hotkeySection
-                privacySection
+                compactControlsRow
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 14)
@@ -39,6 +39,16 @@ struct SettingsView: View {
         }
         .frame(width: settingsWindowSize.width, height: settingsWindowSize.height)
         .background(settingsBackgroundColor)
+    }
+
+    private var compactControlsRow: some View {
+        HStack(alignment: .top, spacing: 12) {
+            hotkeySection
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+
+            privacySection
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
     }
 
     static func preferredWindowSize(for language: AppLanguage) -> CGSize {
@@ -159,28 +169,19 @@ struct SettingsView: View {
     }
 
     private var hotkeySection: some View {
-        settingsCard(title: AppText.value(.settingsGlobalHotkey, language: language)) {
+        settingsCard(
+            title: AppText.value(.settingsGlobalHotkey, language: language),
+            fixedHeight: compactCardHeight
+        ) {
             VStack(alignment: .leading, spacing: 6) {
-                fieldRow(label: AppText.value(.settingsHotkeyKey, language: language)) {
-                    HStack(spacing: 12) {
-                        HStack(spacing: 12) {
-                            hotkeyModifierToggle(title: modifierShortTitle(.command), modifier: .command)
-                            hotkeyModifierToggle(title: modifierShortTitle(.option), modifier: .option)
-                            hotkeyModifierToggle(title: modifierShortTitle(.control), modifier: .control)
-                            hotkeyModifierToggle(title: modifierShortTitle(.shift), modifier: .shift)
-                        }
+                HStack(spacing: 10) {
+                    Spacer(minLength: 0)
 
-                        Picker("", selection: hotkeyKeyBinding) {
-                            ForEach(HotkeyCatalog.options) { option in
-                                Text(option.label)
-                                    .tag(option.keyCode)
-                            }
-                        }
-                        .labelsHidden()
-                        .frame(width: 96, alignment: .leading)
-                    }
-                    .font(.subheadline)
+                    modifierMenu
+
+                    hotkeyKeyMenu
                 }
+                .font(.subheadline)
 
                 if runtimeState.hotkeyRegistrationFailed {
                     Text(AppText.value(.settingsHotkeyUnavailableHint, language: language))
@@ -196,76 +197,61 @@ struct SettingsView: View {
     }
 
     private var privacySection: some View {
-        settingsCard(title: AppText.value(.settingsPrivacy, language: language)) {
+        settingsCard(
+            title: AppText.value(.settingsPrivacy, language: language),
+            fixedHeight: compactCardHeight
+        ) {
             VStack(alignment: .leading, spacing: 9) {
-                Text(AppText.value(.settingsAutoPaste, language: language))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .center, spacing: 8) {
                         accessibilityStatusChip
 
                         Spacer(minLength: 0)
 
-                        HStack(spacing: 8) {
-                            Button(AppText.value(.settingsRequestPermission, language: language)) {
-                                permissions.requestAccessibilityPermission()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-
-                            Button(AppText.value(.settingsOpenPrivacySettings, language: language)) {
-                                permissions.openAccessibilitySettings()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                        Button(AppText.value(.settingsRequestPermission, language: language)) {
+                            permissions.requestAccessibilityPermission()
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
                         accessibilityStatusChip
 
-                        HStack(spacing: 8) {
-                            Button(AppText.value(.settingsRequestPermission, language: language)) {
-                                permissions.requestAccessibilityPermission()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-
-                            Button(AppText.value(.settingsOpenPrivacySettings, language: language)) {
-                                permissions.openAccessibilitySettings()
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
+                        Button(AppText.value(.settingsRequestPermission, language: language)) {
+                            permissions.requestAccessibilityPermission()
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
 
-                Text(AppText.value(.settingsNoPermissionHint, language: language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
     private func settingsCard<Content: View>(
         title: String,
+        fixedHeight: CGFloat? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let isCompact = fixedHeight != nil
+
+        return VStack(alignment: .leading, spacing: isCompact ? 6 : 10) {
             Text(title)
                 .font(.headline)
 
             content()
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, isCompact ? 8 : 12)
+        .frame(
+            maxWidth: .infinity,
+            minHeight: fixedHeight,
+            maxHeight: fixedHeight,
+            alignment: .topLeading
+        )
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(settingsCardBackgroundColor)
@@ -360,21 +346,80 @@ struct SettingsView: View {
         )
     }
 
-    private func modifierBinding(_ modifier: NSEvent.ModifierFlags) -> Binding<Bool> {
-        Binding(
-            get: { settings.isHotkeyModifierEnabled(modifier) },
-            set: { settings.setHotkeyModifier(modifier, enabled: $0) }
-        )
+    private var modifierMenu: some View {
+        Menu {
+            modifierMenuItem(title: modifierShortTitle(.command), modifier: .command)
+            modifierMenuItem(title: modifierShortTitle(.option), modifier: .option)
+            modifierMenuItem(title: modifierShortTitle(.control), modifier: .control)
+            modifierMenuItem(title: modifierShortTitle(.shift), modifier: .shift)
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Text(activeModifiersLabel)
+                    .lineLimit(1)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 34)
+            .modifier(HotkeyControlBackgroundModifier())
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize(horizontal: true, vertical: false)
     }
 
-    private func hotkeyModifierToggle(
-        title: String,
-        modifier: NSEvent.ModifierFlags
-    ) -> some View {
-        Toggle(title, isOn: modifierBinding(modifier))
-            .toggleStyle(.checkbox)
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
+    private var hotkeyKeyMenu: some View {
+        Menu {
+            ForEach(HotkeyCatalog.options) { option in
+                Button {
+                    settings.setHotkeyKeyCode(option.keyCode)
+                } label: {
+                    let selected = settings.hotkey.keyCode == option.keyCode
+                    Text(selected ? "✓ \(option.label)" : option.label)
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(
+                    HotkeyCatalog.options.first(where: { $0.keyCode == settings.hotkey.keyCode })?.label ?? "V"
+                )
+                .lineLimit(1)
+
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .frame(width: 82, height: 34, alignment: .center)
+            .modifier(HotkeyControlBackgroundModifier())
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private func modifierMenuItem(title: String, modifier: NSEvent.ModifierFlags) -> some View {
+        Button {
+            let isEnabled = settings.isHotkeyModifierEnabled(modifier)
+            settings.setHotkeyModifier(modifier, enabled: !isEnabled)
+        } label: {
+            Text(settings.isHotkeyModifierEnabled(modifier) ? "✓ \(title)" : title)
+        }
+    }
+
+    private var activeModifiersLabel: String {
+        let items: [(NSEvent.ModifierFlags, String)] = [
+            (.command, modifierShortTitle(.command)),
+            (.option, modifierShortTitle(.option)),
+            (.control, modifierShortTitle(.control)),
+            (.shift, modifierShortTitle(.shift))
+        ]
+        let enabled = items.compactMap { flag, title in
+            settings.isHotkeyModifierEnabled(flag) ? title : nil
+        }
+        return enabled.joined(separator: "+")
     }
 
     private func modifierShortTitle(_ modifier: NSEvent.ModifierFlags) -> String {
@@ -414,6 +459,20 @@ struct SettingsView: View {
         )
     }
 
+}
+
+private struct HotkeyControlBackgroundModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.35))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 1)
+            )
+    }
 }
 
 private struct SettingsLabelWidthPreferenceKey: PreferenceKey {
