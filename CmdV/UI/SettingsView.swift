@@ -54,9 +54,9 @@ struct SettingsView: View {
     static func preferredWindowSize(for language: AppLanguage) -> CGSize {
         switch language {
         case .english:
-            return CGSize(width: 540, height: 560)
+            return CGSize(width: 540, height: 450)
         case .korean:
-            return CGSize(width: 540, height: 560)
+            return CGSize(width: 540, height: 450)
         }
     }
 
