@@ -9,7 +9,15 @@ struct SettingsView: View {
     let onClearHistory: () -> Void
     let onClose: () -> Void
 
+    private enum SettingsTab: String, Hashable {
+        case general
+        case hotkey
+        case privacy
+        case about
+    }
+
     @State private var labelColumnWidth: CGFloat = 148
+    @State private var selectedTab: SettingsTab = .general
     private let compactCardHeight: CGFloat = 60
     private let developerAddressURL = "https://github.com/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
@@ -19,17 +27,32 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        ScrollView(.vertical) {
-            VStack(alignment: .leading, spacing: 12) {
-                generalSection
-                aboutSection
-                compactControlsRow
+        VStack(spacing: 12) {
+            Picker("", selection: $selectedTab) {
+                Text(AppText.value(.settingsGeneral, language: language)).tag(SettingsTab.general)
+                Text(AppText.value(.settingsGlobalHotkey, language: language)).tag(SettingsTab.hotkey)
+                Text(AppText.value(.settingsPrivacy, language: language)).tag(SettingsTab.privacy)
+                Text(AppText.value(.settingsAbout, language: language)).tag(SettingsTab.about)
             }
+            .pickerStyle(.segmented)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 14)
-            .padding(.top, 14)
-                .padding(.bottom, 8)
+
+            TabView(selection: $selectedTab) {
+                generalSection
+                    .tag(SettingsTab.general)
+                hotkeySection
+                    .tag(SettingsTab.hotkey)
+                privacySection
+                    .tag(SettingsTab.privacy)
+                aboutSection
+                    .tag(SettingsTab.about)
+            }
+            .tabViewStyle(.automatic)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .padding(.horizontal, 14)
+        .padding(.top, 14)
+        .padding(.bottom, 8)
         .onAppear {
             permissions.refreshStatus()
             settings.refreshLaunchAtLoginStatus()
@@ -44,22 +67,12 @@ struct SettingsView: View {
         .background(settingsBackgroundColor)
     }
 
-    private var compactControlsRow: some View {
-        HStack(alignment: .top, spacing: 12) {
-            hotkeySection
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-
-            privacySection
-                .frame(maxWidth: .infinity, alignment: .topLeading)
-        }
-    }
-
     static func preferredWindowSize(for language: AppLanguage) -> CGSize {
         switch language {
         case .english:
-            return CGSize(width: 540, height: 430)
+            return CGSize(width: 540, height: 320)
         case .korean:
-            return CGSize(width: 540, height: 430)
+            return CGSize(width: 540, height: 320)
         }
     }
 
