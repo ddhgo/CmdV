@@ -302,11 +302,16 @@ enum AppTextKey {
     case settingsLaunchAtLoginFailedFormat
     case settingsClearOnSystemRestart
     case settingsClearOnSystemRestartHint
+    case settingsHistoryCapacity
     case settingsHistoryCapacityFormat
+    case settingsHistoryCapacityUnit
     case settingsClipboardPolling
     case settingsClipboardPollingHint
     case settingsGlobalHotkey
+    case settingsCurrentShortcut
     case settingsHotkeyKey
+    case settingsHotkeyModifiers
+    case settingsResetHotkey
     case settingsCommand
     case settingsOption
     case settingsControl
@@ -318,8 +323,11 @@ enum AppTextKey {
     case settingsAutoPaste
     case settingsPermissionEnabled
     case settingsPermissionMissing
+    case settingsPermissionEnabledHelp
+    case settingsPermissionMissingGuide
     case settingsRequestPermission
     case settingsOpenPrivacySettings
+    case settingsRecheckPermission
     case settingsNoPermissionHint
     case settingsClearHistory
     case settingsClearHistoryConfirmTitle
@@ -458,19 +466,29 @@ enum AppText {
         case .settingsLaunchAtLoginFailedFormat:
             return "Failed: %@"
         case .settingsClearOnSystemRestart:
-            return "Clear history after system restart"
+            return "Clear on reboot"
         case .settingsClearOnSystemRestartHint:
-            return "When enabled, history from the previous boot session is removed automatically on next launch after reboot."
+            return "When on, history is removed after reboot on the next launch."
+        case .settingsHistoryCapacity:
+            return "History capacity"
         case .settingsHistoryCapacityFormat:
-            return "History capacity: %d items"
+            return "History capacity %d items"
+        case .settingsHistoryCapacityUnit:
+            return "items"
         case .settingsClipboardPolling:
             return "Clipboard polling"
         case .settingsClipboardPollingHint:
             return "How often CmdV checks for clipboard changes. Lower is faster; higher uses less CPU."
         case .settingsGlobalHotkey:
             return "Global Hotkey"
+        case .settingsCurrentShortcut:
+            return "Current shortcut"
         case .settingsHotkeyKey:
             return "Key"
+        case .settingsHotkeyModifiers:
+            return "Modifiers"
+        case .settingsResetHotkey:
+            return "Reset"
         case .settingsCommand:
             return "Command"
         case .settingsOption:
@@ -491,12 +509,18 @@ enum AppText {
             return "Auto-Paste"
         case .settingsPermissionEnabled:
             return "Accessibility permission is enabled"
+        case .settingsPermissionEnabledHelp:
+            return "Auto-paste and clipboard operations are ready."
         case .settingsPermissionMissing:
             return "Accessibility permission is missing"
+        case .settingsPermissionMissingGuide:
+            return "Open Privacy & Security > Accessibility and allow CmdV."
         case .settingsRequestPermission:
             return "Request Permission"
         case .settingsOpenPrivacySettings:
             return "Open Privacy Settings"
+        case .settingsRecheckPermission:
+            return "Re-check"
         case .settingsNoPermissionHint:
             return "Without permission, selecting an item still copies it to the clipboard."
         case .settingsClearHistory:
@@ -611,19 +635,29 @@ enum AppText {
         case .settingsLaunchAtLoginFailedFormat:
             return "실패: %@"
         case .settingsClearOnSystemRestart:
-            return "시스템 재시작 후 기록 자동 삭제"
+            return "부팅 시 기록 삭제"
         case .settingsClearOnSystemRestartHint:
-            return "활성화하면 재부팅 후 첫 실행 시 이전 부팅 세션의 기록이 자동으로 삭제됩니다."
+            return "켜면 재부팅 후 모든 기록을 삭제합니다"
+        case .settingsHistoryCapacity:
+            return "기록 용량"
         case .settingsHistoryCapacityFormat:
-            return "기록 용량: %d개"
+            return "기록 용량 %d개"
+        case .settingsHistoryCapacityUnit:
+            return "개"
         case .settingsClipboardPolling:
             return "클립보드 폴링"
         case .settingsClipboardPollingHint:
             return "클립보드 변경을 확인하는 주기입니다. 값이 낮을수록 빠르고, 높을수록 CPU 사용이 줄어듭니다."
         case .settingsGlobalHotkey:
             return "전역 단축키"
+        case .settingsCurrentShortcut:
+            return "현재 단축키"
         case .settingsHotkeyKey:
             return "키"
+        case .settingsHotkeyModifiers:
+            return "조합키"
+        case .settingsResetHotkey:
+            return "기본값"
         case .settingsCommand:
             return "Command"
         case .settingsOption:
@@ -644,12 +678,18 @@ enum AppText {
             return "자동 붙여넣기"
         case .settingsPermissionEnabled:
             return "손쉬운 사용 권한이 활성화됨"
+        case .settingsPermissionEnabledHelp:
+            return "자동 붙여넣기 및 클립보드 동작이 즉시 동작합니다."
         case .settingsPermissionMissing:
             return "손쉬운 사용 권한이 없음"
+        case .settingsPermissionMissingGuide:
+            return "시스템 설정 > 보안 및 개인정보 보호 > 손쉬운 사용에서 CmdV를 허용해 주세요."
         case .settingsRequestPermission:
             return "권한 요청"
         case .settingsOpenPrivacySettings:
             return "개인정보 설정 열기"
+        case .settingsRecheckPermission:
+            return "권한 상태 재확인"
         case .settingsNoPermissionHint:
             return "권한이 없어도 항목 선택 시 클립보드에는 복사됩니다."
         case .settingsClearHistory:

@@ -8,6 +8,10 @@ final class SettingsWindowController {
     private let onClearHistory: () -> Void
 
     private var window: NSWindow?
+    private var lastAppliedContentSize: CGSize?
+    private let minimumWindowSize = CGSize(width: 320, height: 270)
+    private let maximumWindowSize = CGSize(width: 620, height: 540)
+    private let fixedWindowWidth = SettingsView.fixedWindowWidth
 
     init(
         settings: SettingsStore,
@@ -42,6 +46,9 @@ final class SettingsWindowController {
             onClearHistory: onClearHistory,
             onClose: { [weak self] in
                 self?.window?.orderOut(nil)
+            },
+            onContentSizeChange: { [weak self] contentSize in
+                self?.applyPreferredSize(for: contentSize)
             }
         )
 
@@ -52,7 +59,7 @@ final class SettingsWindowController {
         window.styleMask = NSWindow.StyleMask([.titled, .closable, .miniaturizable])
         window.backgroundColor = settingsWindowBackgroundColor
         window.isOpaque = true
-        applyPreferredSize(for: window)
+        applyPreferredSize(for: CGSize(width: 360, height: 320), to: window)
 
         self.window = window
     }
@@ -62,17 +69,47 @@ final class SettingsWindowController {
             return
         }
 
-        applyPreferredSize(for: window)
+        if let lastSize = lastAppliedContentSize {
+            applyPreferredSize(for: lastSize, to: window)
+            return
+        }
+
+        let fallbackSize = CGSize(width: 360, height: 320)
+        applyPreferredSize(for: fallbackSize, to: window)
     }
 
-    private func applyPreferredSize(for window: NSWindow) {
-        let preferredSize = SettingsView.preferredWindowSize(for: settings.appLanguage)
+    private func applyPreferredSize(for contentSize: CGSize) {
+        guard let window else {
+            return
+        }
+
+        applyPreferredSize(for: contentSize, to: window)
+    }
+
+    private func applyPreferredSize(for contentSize: CGSize, to window: NSWindow) {
         let wasVisible = window.isVisible
         let currentFrame = window.frame
+        let targetWidth = max(
+            minimumWindowSize.width,
+            fixedWindowWidth
+        )
+        let targetHeight = min(
+            maximumWindowSize.height,
+            max(minimumWindowSize.height, contentSize.height)
+        )
+        let preferredSize = CGSize(width: targetWidth, height: targetHeight)
+
+        if let lastAppliedContentSize,
+           abs(lastAppliedContentSize.width - preferredSize.width) < 0.5,
+           abs(lastAppliedContentSize.height - preferredSize.height) < 0.5 {
+            return
+        }
+
+        lastAppliedContentSize = preferredSize
 
         window.setContentSize(preferredSize)
-        window.minSize = preferredSize
-        window.maxSize = preferredSize
+        window.minSize = CGSize(width: targetWidth, height: minimumWindowSize.height)
+        window.maxSize = CGSize(width: targetWidth, height: maximumWindowSize.height)
 
         if !wasVisible {
             window.center()
@@ -80,8 +117,8 @@ final class SettingsWindowController {
         }
 
         let centeredOrigin = NSPoint(
-            x: currentFrame.midX - (window.frame.width / 2),
-            y: currentFrame.midY - (window.frame.height / 2)
+            x: currentFrame.midX - (targetWidth / 2),
+            y: currentFrame.midY - (targetHeight / 2)
         )
         window.setFrameOrigin(centeredOrigin)
     }

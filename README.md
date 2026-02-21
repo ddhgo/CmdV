@@ -48,6 +48,25 @@ Notes:
 - The project targets macOS 13.0+.
 - MVP is intentionally non-sandboxed to keep global hotkey and auto-paste behavior reliable.
 
+### Stable local restart command
+
+To avoid launching stale builds, use one deterministic command for local testing:
+
+```bash
+./scripts/restart_app.sh
+```
+
+This command:
+- builds into `build/DerivedData`
+- kills any running `CmdV` process
+- launches `build/DerivedData/Build/Products/Debug/CmdV.app` directly
+
+Optional configuration (Release):
+
+```bash
+./scripts/restart_app.sh Release
+```
+
 ## Automated Tests
 
 - Unit tests target: `CmdVTests` (XCTest)

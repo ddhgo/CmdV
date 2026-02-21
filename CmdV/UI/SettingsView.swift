@@ -2,12 +2,15 @@ import AppKit
 import SwiftUI
 
 struct SettingsView: View {
+    static let fixedWindowWidth: CGFloat = 360
+
     @ObservedObject var settings: SettingsStore
     @ObservedObject var permissions: PermissionsService
     @ObservedObject var runtimeState: AppRuntimeState
 
     let onClearHistory: () -> Void
     let onClose: () -> Void
+    let onContentSizeChange: (CGSize) -> Void
 
     private enum SettingsTab: String, CaseIterable, Hashable {
         case general
@@ -16,9 +19,16 @@ struct SettingsView: View {
         case about
     }
 
-    @State private var labelColumnWidth: CGFloat = 148
+    @State private var labelColumnWidth: CGFloat = 132
     @State private var selectedTab: SettingsTab = .general
+    @State private var contentSize: CGSize = .zero
+    @State private var tabBarWidth: CGFloat = 0
+    private let fixedWindowWidth = Self.fixedWindowWidth
+    private let tabSpacing: CGFloat = 5
+    private let tabButtonMinSize: CGFloat = 44
+    private let tabButtonMaxSize: CGFloat = 78
     private let compactCardHeight: CGFloat = 60
+    private let permissionsButtonHeight: CGFloat = 30
     private let developerAddressURL = "https://github.com/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
 
@@ -28,29 +38,59 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(spacing: 8) {
+            HStack(spacing: tabSpacing) {
                 ForEach(SettingsTab.allCases, id: \.self) { tab in
+                    let isSelected = selectedTab == tab
+                    let iconSize = isSelected ? 16.0 : 15.0
+                    let tabButtonSide = tabButtonLength
+
                     Button {
                         selectedTab = tab
                     } label: {
-                        Label(tabTitle(tab), systemImage: tabIcon(tab))
-                            .labelStyle(.titleAndIcon)
-                            .font(.system(size: 12, weight: selectedTab == tab ? .semibold : .regular))
-                            .foregroundStyle(selectedTab == tab ? Color.accentColor : Color.secondary)
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 10)
+                        Image(systemName: tabIcon(tab))
+                            .font(.system(size: iconSize, weight: isSelected ? .semibold : .regular))
+                            .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                            .frame(width: tabButtonSide, height: tabButtonSide)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(isSelected ? Color.accentColor.opacity(0.2) : Color(nsColor: .windowBackgroundColor).opacity(0.2))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(
+                                        isSelected ? Color.accentColor.opacity(0.5) : Color(nsColor: .separatorColor).opacity(0.32),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .animation(.easeInOut(duration: 0.16), value: isSelected)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(tabTitle(tab))
+                }
+            }
+            .padding(.horizontal, 2)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: SettingsTabBarWidthPreferenceKey.self,
+                        value: proxy.size.width
+                    )
+                }
+            )
+            .onPreferenceChange(SettingsTabBarWidthPreferenceKey.self) { measuredWidth in
+                guard measuredWidth > 0 else { return }
+                if abs(measuredWidth - tabBarWidth) >= 0.5 {
+                    tabBarWidth = measuredWidth
                 }
             }
 
             selectedTabContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 10)
         .padding(.top, 14)
         .padding(.bottom, 8)
+        .frame(width: fixedWindowWidth)
         .onAppear {
             permissions.refreshStatus()
             settings.refreshLaunchAtLoginStatus()
@@ -59,23 +99,31 @@ struct SettingsView: View {
             settings.refreshLaunchAtLoginStatus()
         }
         .onPreferenceChange(SettingsLabelWidthPreferenceKey.self) { measuredWidth in
-            labelColumnWidth = min(164, max(136, measuredWidth))
+            labelColumnWidth = min(142, max(122, measuredWidth))
         }
-        .frame(width: settingsWindowSize.width, height: settingsWindowSize.height)
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: SettingsViewContentSizePreferenceKey.self,
+                    value: proxy.size
+                )
+            }
+        )
+        .onPreferenceChange(SettingsViewContentSizePreferenceKey.self) { measuredSize in
+            guard measuredSize.width > 0, measuredSize.height > 0 else {
+                return
+            }
+
+            if abs(measuredSize.width - contentSize.width) < 0.5,
+               abs(measuredSize.height - contentSize.height) < 0.5 {
+                return
+            }
+
+            contentSize = measuredSize
+            onContentSizeChange(measuredSize)
+        }
+        .fixedSize(horizontal: false, vertical: true)
         .background(settingsBackgroundColor)
-    }
-
-    static func preferredWindowSize(for language: AppLanguage) -> CGSize {
-        switch language {
-        case .english:
-            return CGSize(width: 540, height: 320)
-        case .korean:
-            return CGSize(width: 540, height: 320)
-        }
-    }
-
-    private var settingsWindowSize: CGSize {
-        Self.preferredWindowSize(for: language)
     }
 
     private var selectedTabContent: some View {
@@ -139,22 +187,25 @@ struct SettingsView: View {
                         .toggleStyle(.switch)
                 }
 
-                VStack(alignment: .leading, spacing: 4) {
-                    clearOnSystemRestartRow
-
-                    Text(AppText.value(.settingsClearOnSystemRestartHint, language: language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(nil)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                clearOnSystemRestartRow
 
                 historyCapacityRow
 
-                fieldRow(label: AppText.value(.settingsClipboardPolling, language: language)) {
-                    HStack(spacing: 6) {
+                fieldRow(
+                    label: AppText.value(.settingsClipboardPolling, language: language),
+                    infoMessage: AppText.value(.settingsClipboardPollingHint, language: language)
+                ) {
+                    HStack(alignment: .center, spacing: 6) {
+                        Stepper(
+                            "",
+                            value: pollingIntervalBinding,
+                            in: SettingsStore.pollingIntervalDisplayRange,
+                            step: SettingsStore.pollingIntervalStep
+                        )
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .frame(height: 22)
+
                         TextField(
                             "",
                             value: pollingIntervalBinding,
@@ -163,28 +214,14 @@ struct SettingsView: View {
                         .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.trailing)
                         .frame(width: 56)
+                        .controlSize(.small)
+                        .frame(height: 22)
 
                         Text("s")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-
-                        Stepper(
-                            "",
-                            value: pollingIntervalBinding,
-                            in: SettingsStore.pollingIntervalDisplayRange,
-                            step: SettingsStore.pollingIntervalStep
-                        )
-                            .labelsHidden()
                     }
                 }
-
-                Text(AppText.value(.settingsClipboardPollingHint, language: language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -222,14 +259,10 @@ struct SettingsView: View {
     }
 
     private var clearOnSystemRestartRow: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(AppText.value(.settingsClearOnSystemRestart, language: language))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.92)
-
-            Spacer(minLength: 0)
-
+        fieldRow(
+            label: AppText.value(.settingsClearOnSystemRestart, language: language),
+            infoMessage: AppText.value(.settingsClearOnSystemRestartHint, language: language)
+        ) {
             Toggle("", isOn: $settings.clearHistoryOnSystemRestart)
                 .labelsHidden()
                 .toggleStyle(.switch)
@@ -238,20 +271,33 @@ struct SettingsView: View {
     }
 
     private var historyCapacityRow: some View {
-        HStack(alignment: .center, spacing: 12) {
-            Text(AppText.historyCapacity(settings.maxHistoryItems, language: language))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-
-            Spacer(minLength: 0)
-
-            Stepper(
-                "",
-                value: $settings.maxHistoryItems,
-                in: SettingsStore.maxHistoryItemsUIStepperRange,
-                step: SettingsStore.maxHistoryItemsStep
-            )
+        fieldRow(label: AppText.value(.settingsHistoryCapacity, language: language)) {
+            HStack(alignment: .center, spacing: 6) {
+                Stepper(
+                    "",
+                    value: historyCapacityBinding,
+                    in: SettingsStore.maxHistoryItemsUIStepperRange,
+                    step: SettingsStore.maxHistoryItemsStep
+                )
                 .labelsHidden()
+                .controlSize(.small)
+                .frame(height: 22)
+
+                TextField(
+                    "",
+                    value: historyCapacityBinding,
+                    format: .number
+                )
+                .textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 56)
+                .controlSize(.small)
+                .frame(height: 22)
+
+                Text(AppText.value(.settingsHistoryCapacityUnit, language: language))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -260,62 +306,86 @@ struct SettingsView: View {
             title: AppText.value(.settingsGlobalHotkey, language: language),
             fixedHeight: compactCardHeight
         ) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 10) {
-                    Spacer(minLength: 0)
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
 
-                    modifierMenu
+                modifierMenu
 
-                    hotkeyKeyMenu
-                }
-                .font(.subheadline)
+                hotkeyKeyMenu
+            }
+            .font(.subheadline)
 
-                if runtimeState.hotkeyRegistrationFailed {
-                    Text(AppText.value(.settingsHotkeyUnavailableHint, language: language))
-                        .font(.caption)
-                        .foregroundStyle(Color.orange)
-                        .lineLimit(nil)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            if runtimeState.hotkeyRegistrationFailed {
+                Text(AppText.value(.settingsHotkeyUnavailableHint, language: language))
+                    .font(.caption)
+                    .foregroundStyle(Color.orange)
+                    .lineLimit(nil)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
     private var privacySection: some View {
         settingsCard(
-            title: AppText.value(.settingsPrivacy, language: language),
-            fixedHeight: compactCardHeight
+            title: AppText.value(.settingsPrivacy, language: language)
         ) {
-            VStack(alignment: .leading, spacing: 9) {
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .center, spacing: 8) {
-                        accessibilityStatusChip
+            VStack(alignment: .leading, spacing: 11) {
+                HStack(alignment: .top, spacing: 10) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill((permissions.accessibilityGranted ? Color.green : Color.orange).opacity(0.16))
+                            .frame(width: 30, height: 30)
 
-                        Spacer(minLength: 0)
-
-                        Button(AppText.value(.settingsRequestPermission, language: language)) {
-                            permissions.requestAccessibilityPermission()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        Image(systemName: "hand.raised.fill")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(permissions.accessibilityGranted ? Color.green : Color.orange)
                     }
+                    .frame(width: 30, height: 30)
 
                     VStack(alignment: .leading, spacing: 6) {
                         accessibilityStatusChip
-
-                        Button(AppText.value(.settingsRequestPermission, language: language)) {
-                            permissions.requestAccessibilityPermission()
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        Text(privacyPermissionHint)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(nil)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 
+                HStack(spacing: 8) {
+                    if permissions.accessibilityGranted {
+                        Button(AppText.value(.settingsPermissionEnabled, language: language)) {}
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                            .frame(height: permissionsButtonHeight)
+                            .disabled(true)
+                    } else {
+                        Button(AppText.value(.settingsRequestPermission, language: language)) {
+                            permissions.requestAccessibilityPermission()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .frame(height: permissionsButtonHeight)
+                    }
+
+                    Button(AppText.value(.settingsOpenPrivacySettings, language: language)) {
+                        permissions.openAccessibilitySettings()
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .frame(height: permissionsButtonHeight)
+                }
             }
         }
+    }
+
+    private var privacyPermissionHint: String {
+        permissions.accessibilityGranted
+            ? AppText.value(.settingsPermissionEnabledHelp, language: language)
+            : AppText.value(.settingsPermissionMissingGuide, language: language)
     }
 
     private func settingsCard<Content: View>(
@@ -351,21 +421,28 @@ struct SettingsView: View {
 
     private func fieldRow<Content: View>(
         label: String,
+        infoMessage: String? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
-            Text(label)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: SettingsLabelWidthPreferenceKey.self,
-                            value: proxy.size.width
-                        )
-                    }
-                )
+            HStack(spacing: 4) {
+                Text(label)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(
+                                key: SettingsLabelWidthPreferenceKey.self,
+                                value: proxy.size.width
+                            )
+                        }
+                    )
                 .frame(width: labelColumnWidth, alignment: .leading)
+
+                if let infoMessage {
+                    InfoHelpButton(message: infoMessage)
+                }
+            }
 
             Spacer(minLength: 0)
             content()
@@ -375,13 +452,9 @@ struct SettingsView: View {
 
     private var accessibilityStatusChip: some View {
         let granted = permissions.accessibilityGranted
-        let statusText: String
-        switch language {
-        case .english:
-            statusText = granted ? "Enabled" : "Missing"
-        case .korean:
-            statusText = granted ? "활성화됨" : "없음"
-        }
+        let statusText = granted
+            ? AppText.value(.settingsPermissionEnabled, language: language)
+            : AppText.value(.settingsPermissionMissing, language: language)
         let tint = granted ? Color.green : Color.orange
 
         return HStack(spacing: 6) {
@@ -415,6 +488,18 @@ struct SettingsView: View {
         )
     }
 
+    private var historyCapacityBinding: Binding<Int> {
+        Binding(
+            get: { settings.maxHistoryItems },
+            set: { value in
+                settings.maxHistoryItems = min(
+                    SettingsStore.maxHistoryItemsRange.upperBound,
+                    max(SettingsStore.maxHistoryItemsRange.lowerBound, value)
+                )
+            }
+        )
+    }
+
     private var appVersionText: String {
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
@@ -438,13 +523,6 @@ struct SettingsView: View {
         NSWorkspace.shared.open(url)
     }
 
-    private var hotkeyKeyBinding: Binding<UInt32> {
-        Binding(
-            get: { settings.hotkey.keyCode },
-            set: { settings.setHotkeyKeyCode($0) }
-        )
-    }
-
     private var launchAtLoginBinding: Binding<Bool> {
         Binding(
             get: { settings.launchAtLoginEnabled },
@@ -454,6 +532,25 @@ struct SettingsView: View {
                 }
             }
         )
+    }
+
+    private var tabButtonCount: Int {
+        SettingsTab.allCases.count
+    }
+
+    private var tabButtonLength: CGFloat {
+        guard tabBarWidth > 0 else { return tabButtonMinSize }
+        let count = CGFloat(tabButtonCount)
+        let spacingTotal = tabSpacing * (count - 1)
+        return max(tabButtonMinSize, min(tabButtonMaxSize, (tabBarWidth - spacingTotal) / count))
+    }
+
+    private struct SettingsTabBarWidthPreferenceKey: PreferenceKey {
+        static var defaultValue: CGFloat = 0
+
+        static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+            value = nextValue()
+        }
     }
 
     private var modifierMenu: some View {
@@ -481,6 +578,15 @@ struct SettingsView: View {
         .fixedSize(horizontal: true, vertical: false)
     }
 
+    private func modifierMenuItem(title: String, modifier: NSEvent.ModifierFlags) -> some View {
+        Button {
+            let isEnabled = settings.isHotkeyModifierEnabled(modifier)
+            settings.setHotkeyModifier(modifier, enabled: !isEnabled)
+        } label: {
+            Text(settings.isHotkeyModifierEnabled(modifier) ? "✓ \(title)" : title)
+        }
+    }
+
     private var hotkeyKeyMenu: some View {
         Menu {
             ForEach(HotkeyCatalog.options) { option in
@@ -503,20 +609,12 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 10)
-            .frame(width: 82, height: 34, alignment: .center)
+            .frame(height: 34, alignment: .center)
+            .frame(minWidth: 88)
             .modifier(HotkeyControlBackgroundModifier())
         }
         .menuStyle(.borderlessButton)
         .fixedSize(horizontal: true, vertical: false)
-    }
-
-    private func modifierMenuItem(title: String, modifier: NSEvent.ModifierFlags) -> some View {
-        Button {
-            let isEnabled = settings.isHotkeyModifierEnabled(modifier)
-            settings.setHotkeyModifier(modifier, enabled: !isEnabled)
-        } label: {
-            Text(settings.isHotkeyModifierEnabled(modifier) ? "✓ \(title)" : title)
-        }
     }
 
     private var activeModifiersLabel: String {
@@ -526,6 +624,7 @@ struct SettingsView: View {
             (.control, modifierShortTitle(.control)),
             (.shift, modifierShortTitle(.shift))
         ]
+
         let enabled = items.compactMap { flag, title in
             settings.isHotkeyModifierEnabled(flag) ? title : nil
         }
@@ -568,7 +667,6 @@ struct SettingsView: View {
             }
         )
     }
-
 }
 
 private struct HotkeyControlBackgroundModifier: ViewModifier {
@@ -585,10 +683,45 @@ private struct HotkeyControlBackgroundModifier: ViewModifier {
     }
 }
 
+private struct InfoHelpButton: View {
+    let message: String
+    @State private var isShowingHelp = false
+
+    var body: some View {
+        Image(systemName: "info.circle.fill")
+            .font(.system(size: 11, weight: .regular))
+            .foregroundStyle(.secondary)
+            .frame(width: 12, height: 12)
+            .contentShape(Circle())
+            .onTapGesture {
+                isShowingHelp.toggle()
+            }
+            .popover(isPresented: $isShowingHelp) {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .padding(10)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .help(message)
+            .accessibilityLabel("설명 보기")
+            .accessibilityValue(message)
+    }
+}
+
 private struct SettingsLabelWidthPreferenceKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+private struct SettingsViewContentSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
     }
 }

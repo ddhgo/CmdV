@@ -2,29 +2,106 @@ import AppKit
 import Carbon.HIToolbox
 import Foundation
 import ImageIO
-import SwiftUI
 
-private final class MenuActivationSwitchModel: ObservableObject {
-    @Published var isOn: Bool = true
+private final class MenuActivationSwitchControl: NSControl {
+    private let trackLayer = CALayer()
+    private let knobLayer = CALayer()
+    private(set) var isOn: Bool = true
     var onToggle: ((Bool) -> Void)?
-}
 
-private struct MenuActivationSwitchView: View {
-    @ObservedObject var model: MenuActivationSwitchModel
+    override var intrinsicContentSize: NSSize {
+        NSSize(width: 46, height: 28)
+    }
 
-    var body: some View {
-        Toggle("", isOn: Binding(
-            get: { model.isOn },
-            set: { newValue in
-                model.isOn = newValue
-                model.onToggle?(newValue)
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        isEnabled = true
+        setupLayers()
+        updateAppearance(animated: false)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func setOn(_ on: Bool, animated: Bool = false) {
+        guard isOn != on else {
+            updateAppearance(animated: false)
+            return
+        }
+
+        isOn = on
+        updateAppearance(animated: animated)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        guard isEnabled else {
+            return
+        }
+
+        isOn.toggle()
+        updateAppearance(animated: true)
+        onToggle?(isOn)
+        _ = sendAction(action, to: target)
+    }
+
+    override func layout() {
+        super.layout()
+        layoutLayers()
+    }
+
+    private func setupLayers() {
+        guard let rootLayer = layer else {
+            return
+        }
+
+        rootLayer.addSublayer(trackLayer)
+        rootLayer.addSublayer(knobLayer)
+
+        trackLayer.masksToBounds = true
+        knobLayer.masksToBounds = true
+        knobLayer.shadowOpacity = 0.12
+        knobLayer.shadowRadius = 1.5
+        knobLayer.shadowOffset = CGSize(width: 0, height: -0.3)
+    }
+
+    private func layoutLayers() {
+        let bounds = self.bounds
+        guard bounds.width > 0, bounds.height > 0 else {
+            return
+        }
+
+        trackLayer.frame = bounds
+        trackLayer.cornerRadius = bounds.height / 2
+
+        let inset: CGFloat = 2
+        let knobSize = bounds.height - (inset * 2)
+        let knobX = isOn ? bounds.width - inset - knobSize : inset
+        knobLayer.frame = CGRect(x: knobX, y: inset, width: knobSize, height: knobSize)
+        knobLayer.cornerRadius = knobSize / 2
+    }
+
+    private func updateAppearance(animated: Bool) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(!animated)
+
+        trackLayer.backgroundColor = (isOn ? NSColor.systemBlue : offTrackColor).cgColor
+        knobLayer.backgroundColor = NSColor(srgbRed: 0.93, green: 0.94, blue: 0.96, alpha: 1).cgColor
+        knobLayer.borderWidth = 0.5
+        knobLayer.borderColor = NSColor.black.withAlphaComponent(0.12).cgColor
+
+        layoutLayers()
+        CATransaction.commit()
+    }
+
+    private var offTrackColor: NSColor {
+        NSColor(name: nil) { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor(srgbRed: 0.26, green: 0.27, blue: 0.31, alpha: 1)
             }
-        ))
-            .labelsHidden()
-            .toggleStyle(SwitchToggleStyle(tint: .blue))
-            .disabled(false)
-            .controlSize(.small)
-            .fixedSize(horizontal: true, vertical: false)
+            return NSColor(srgbRed: 0.74, green: 0.75, blue: 0.78, alpha: 1)
+        }
     }
 }
 
@@ -35,10 +112,7 @@ private final class MenuActivationHeaderView: NSView {
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
-    private let switchModel = MenuActivationSwitchModel()
-    private lazy var activationToggle = NSHostingView(
-        rootView: MenuActivationSwitchView(model: switchModel)
-    )
+    private let activationToggle = MenuActivationSwitchControl()
 
     override init(frame frameRect: NSRect) {
         super.init(frame: NSRect(origin: .zero, size: Self.preferredSize))
@@ -57,7 +131,7 @@ private final class MenuActivationHeaderView: NSView {
         titleLabel.stringValue = title
         subtitleLabel.stringValue = subtitle
         subtitleLabel.textColor = .secondaryLabelColor
-        switchModel.isOn = isEnabled
+        activationToggle.setOn(isEnabled, animated: true)
         needsLayout = true
         layoutSubtreeIfNeeded()
         displayIfNeeded()
@@ -99,8 +173,7 @@ private final class MenuActivationHeaderView: NSView {
             rowStack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             rowStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
         ])
-
-        switchModel.onToggle = { [weak self] isEnabled in
+        activationToggle.onToggle = { [weak self] isEnabled in
             self?.onToggleChanged?(isEnabled)
         }
     }
