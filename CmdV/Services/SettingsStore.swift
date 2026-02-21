@@ -512,17 +512,17 @@ enum AppText {
         case .settingsAbout:
             return "About"
         case .settingsDeveloperName:
-            return "Developer"
+            return "Creator"
         case .settingsDeveloperAddress:
-            return "Related Address"
+            return "Links"
         case .settingsVersion:
-            return "Version"
+            return "App version"
         case .settingsFeedback:
-            return "Feedback"
+            return "Support"
         case .settingsDeveloperAddressOpen:
-            return "Open Website"
+            return "Website"
         case .settingsSendFeedback:
-            return "Send Feedback"
+            return "Report issue"
         case .settingsLanguage:
             return "Language"
         case .settingsPauseRecording:
@@ -707,17 +707,17 @@ enum AppText {
         case .settingsAbout:
             return "정보"
         case .settingsDeveloperName:
-            return "개발자"
+            return "제작자"
         case .settingsDeveloperAddress:
-            return "관련 주소"
+            return "주소"
         case .settingsVersion:
             return "버전"
         case .settingsFeedback:
-            return "피드백"
+            return "지원"
         case .settingsDeveloperAddressOpen:
-            return "웹사이트 열기"
+            return "웹사이트"
         case .settingsSendFeedback:
-            return "피드백 보내기"
+            return "이슈 등록"
         case .settingsLanguage:
             return "언어"
         case .settingsPauseRecording:

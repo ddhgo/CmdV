@@ -162,7 +162,7 @@ struct SettingsView: View {
     private func tabIcon(_ tab: SettingsTab) -> String {
         switch tab {
         case .general:
-            return "gearshape"
+            return "slider.horizontal.3"
         case .hotkey:
             return "keyboard"
         case .privacy:
@@ -229,34 +229,58 @@ struct SettingsView: View {
     }
 
     private var aboutSection: some View {
-        settingsCard(title: AppText.value(.settingsAbout, language: language)) {
-            VStack(alignment: .leading, spacing: 8) {
-                fieldRow(label: AppText.value(.settingsDeveloperName, language: language)) {
-                    Text("rtfdev")
-                        .foregroundStyle(.secondary)
+        settingsCard(
+            title: "",
+            showTitle: false
+        ) {
+            VStack(alignment: .center, spacing: 8) {
+                aboutValueRow {
+                    Text("CmdV")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.primary)
                 }
 
-                fieldRow(label: AppText.value(.settingsDeveloperAddress, language: language)) {
+                aboutValueRow {
+                    Text(appVersionText)
+                        .foregroundStyle(.secondary)
+                        .font(.callout)
+                        .italic()
+                }
+
+                aboutValueRow {
+                    Text("rtfdev")
+                        .foregroundStyle(.secondary)
+                        .font(.callout)
+                }
+
+                aboutValueRow {
                     Button(AppText.value(.settingsDeveloperAddressOpen, language: language)) {
                         openExternalURL(developerAddressURL)
                     }
                     .buttonStyle(.bordered)
+                    .font(.callout)
                     .controlSize(.small)
                 }
 
-                fieldRow(label: AppText.value(.settingsVersion, language: language)) {
-                    Text(appVersionText)
-                        .foregroundStyle(.secondary)
-                }
-
-                fieldRow(label: AppText.value(.settingsFeedback, language: language)) {
+                aboutValueRow {
                     Button(AppText.value(.settingsSendFeedback, language: language)) {
                         openExternalURL(feedbackURL)
                     }
                     .buttonStyle(.bordered)
+                    .font(.callout)
                     .controlSize(.small)
                 }
             }
+        }
+    }
+
+    private func aboutValueRow<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .center, spacing: 4) {
+            content()
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
@@ -402,20 +426,23 @@ struct SettingsView: View {
 
     private func settingsCard<Content: View>(
         title: String,
+        showTitle: Bool = true,
         fixedHeight: CGFloat? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         let isCompact = fixedHeight != nil
 
         return VStack(alignment: .leading, spacing: isCompact ? 6 : 10) {
-            HStack(spacing: 0) {
-                Spacer(minLength: 0)
-                Text(title)
-                    .font(.headline)
-                    .multilineTextAlignment(.center)
-                Spacer(minLength: 0)
+            if showTitle {
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Text(title)
+                        .font(.headline)
+                        .multilineTextAlignment(.center)
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
 
             content()
         }
