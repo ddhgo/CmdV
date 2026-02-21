@@ -17,11 +17,11 @@ Options:
   --profile <name>         Keychain profile name (default: CmdVNotary)
   --apple-id <email>       Apple ID (or APPLE_ID env)
   --team-id <id>           Apple team id (or APPLE_TEAM_ID env)
-  --password <value>       App-specific password (or APPLE_APP_SPECIFIC_PASSWORD env)
+  --password <value>       App-specific password (or APPLE_APP_SPECIFIC_PASSWORD env, avoid shell history)
   -h, --help               Show help
 
 Example:
-  APPLE_ID=you@example.com APPLE_TEAM_ID=TEAMID APPLE_APP_SPECIFIC_PASSWORD=xxxx-xxxx-xxxx-xxxx \
+  APPLE_ID=<YOUR_APPLE_ID> APPLE_TEAM_ID=<YOUR_TEAM_ID> APPLE_APP_SPECIFIC_PASSWORD=<APP_SPECIFIC_PASSWORD> \
   scripts/setup_notary_profile.sh --profile CmdVNotary
 USAGE
 }

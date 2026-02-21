@@ -12,13 +12,22 @@ on:
 jobs:
   release:
     runs-on: macos-14
+    permissions:
+      contents: read
 
     env:
       KEYCHAIN_NAME: ctrlcv-release.keychain-db
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Guard protected ref
+        run: |
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Release workflow is restricted to main branch." >&2
+            exit 1
+          fi
 
       - name: Import Developer ID certificate
         env:
@@ -58,21 +67,24 @@ jobs:
             -k "$KEYCHAIN_PASSWORD" \
             "$KEYCHAIN_PATH"
 
-      - name: Build signed DMG
+      - name: Build signed + notarized DMG
+        if: ${{ inputs.notarize }}
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APP_SIGN_IDENTITY: ${{ secrets.APP_SIGN_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-        run: |
-          if [[ "${{ inputs.notarize }}" == "true" ]]; then
-            scripts/release_signed_notarized_dmg.sh
-          else
-            scripts/release_signed_notarized_dmg.sh --skip-notarize
-          fi
+        run: scripts/release_signed_notarized_dmg.sh
+
+      - name: Build signed DMG (without notarize)
+        if: ${{ !inputs.notarize }}
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_SIGN_IDENTITY: ${{ secrets.APP_SIGN_IDENTITY }}
+        run: scripts/release_signed_notarized_dmg.sh --skip-notarize
 
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ctrlcv-dmg
           path: dist/release/*.dmg

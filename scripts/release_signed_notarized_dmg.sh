@@ -35,18 +35,19 @@ Options:
   --sign-identity <name>    Signing identity (or APP_SIGN_IDENTITY env)
   --notary-profile <name>   notarytool keychain profile (or NOTARY_PROFILE env)
   --apple-id <email>        Apple ID for notarization (or APPLE_ID env)
-  --apple-password <value>  App-specific password (or APPLE_APP_SPECIFIC_PASSWORD env)
+  --apple-password <value>  App-specific password (or APPLE_APP_SPECIFIC_PASSWORD env, not recommended in shell history)
   --skip-archive            Skip archive step and use existing archive path
   --skip-notarize           Skip notarization/stapling (build + sign + DMG only)
   -h, --help                Show help
 
 Examples:
-  APPLE_TEAM_ID=TEAMID APP_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+  APPLE_TEAM_ID=<YOUR_TEAM_ID> APP_SIGN_IDENTITY="Developer ID Application: Your Name (<YOUR_TEAM_ID>)" \
   NOTARY_PROFILE=CmdVNotary scripts/release_signed_notarized_dmg.sh
 
-  APPLE_TEAM_ID=TEAMID APP_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
-  APPLE_ID=you@example.com APPLE_APP_SPECIFIC_PASSWORD=xxxx-xxxx-xxxx-xxxx \
-  scripts/release_signed_notarized_dmg.sh
+  # Preferred: set NOTARY_PROFILE first. If you must use APPLE_ID/password,
+  # export them in a secure shell session and avoid committing shell history.
+  APPLE_TEAM_ID=<YOUR_TEAM_ID> APP_SIGN_IDENTITY="Developer ID Application: Your Name (<YOUR_TEAM_ID>)" \
+  scripts/release_signed_notarized_dmg.sh --notary-profile CmdVNotary
 USAGE
 }
 

@@ -7,8 +7,10 @@ final class ImageStorage {
         imagesDirectory = baseDirectory.appendingPathComponent("Images", isDirectory: true)
         try FileManager.default.createDirectory(
             at: imagesDirectory,
-            withIntermediateDirectories: true
+            withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
         )
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: imagesDirectory.path)
     }
 
     func saveImageData(_ data: Data, hash: String) throws -> String {
@@ -17,6 +19,7 @@ final class ImageStorage {
         if !FileManager.default.fileExists(atPath: fileURL.path) {
             try data.write(to: fileURL, options: .atomic)
         }
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fileURL.path)
 
         return fileURL.path
     }

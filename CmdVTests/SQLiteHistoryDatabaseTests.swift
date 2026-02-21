@@ -55,6 +55,13 @@ final class SQLiteHistoryDatabaseTests: XCTestCase {
         XCTAssertEqual(database.latestHash(), "hash-image-1")
     }
 
+    func testDatabaseFileUsesOwnerOnlyPermissions() throws {
+        _ = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let attributes = try FileManager.default.attributesOfItem(atPath: databaseURL.path)
+        let permissions = (attributes[.posixPermissions] as? NSNumber)?.intValue
+        XCTAssertEqual(permissions, 0o600)
+    }
+
     func testTrimToCapacityRemovesOldRowsAndReturnsImagePaths() throws {
         let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
         let baseDate = Date(timeIntervalSince1970: 1_700_000_100)

@@ -101,11 +101,15 @@ scripts/release_signed_notarized_dmg.sh
 Notary profile one-time setup:
 
 ```bash
-APPLE_ID="you@example.com" \
-APPLE_TEAM_ID="ABCDE12345" \
-APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+APPLE_ID="<YOUR_APPLE_ID>" \
+APPLE_TEAM_ID="<YOUR_TEAM_ID>" \
+APPLE_APP_SPECIFIC_PASSWORD="<APP_SPECIFIC_PASSWORD>" \
 scripts/setup_notary_profile.sh --profile CmdVNotary
 ```
+
+Security note:
+- Do not paste real credentials directly into shell history.
+- Prefer `NOTARY_PROFILE` after one-time keychain setup.
 
 Release docs:
 - `docs/RELEASE.md`

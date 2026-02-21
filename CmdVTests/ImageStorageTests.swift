@@ -35,6 +35,11 @@ final class ImageStorageTests: XCTestCase {
         XCTAssertTrue(isDirectory.boolValue)
     }
 
+    func testImagesDirectoryUsesOwnerOnlyPermissions() throws {
+        let permissions = try posixPermissions(of: storage.imagesDirectory)
+        XCTAssertEqual(permissions, 0o700)
+    }
+
     func testSaveImageDataWritesFileAndReturnsExpectedPath() throws {
         let data = Data([0x89, 0x50, 0x4E, 0x47, 0x01, 0x02])
 
@@ -42,6 +47,12 @@ final class ImageStorageTests: XCTestCase {
 
         XCTAssertEqual(savedPath, storage.imagesDirectory.appendingPathComponent("hash-1.png", isDirectory: false).path)
         XCTAssertEqual(try Data(contentsOf: URL(fileURLWithPath: savedPath)), data)
+    }
+
+    func testSavedFileUsesOwnerOnlyPermissions() throws {
+        let savedPath = try storage.saveImageData(Data([0xAA, 0xBB]), hash: "secure-hash")
+        let permissions = try posixPermissions(of: URL(fileURLWithPath: savedPath))
+        XCTAssertEqual(permissions, 0o600)
     }
 
     func testSaveImageDataDoesNotOverwriteExistingFileForSameHash() throws {
@@ -76,5 +87,13 @@ final class ImageStorageTests: XCTestCase {
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: first))
         XCTAssertFalse(FileManager.default.fileExists(atPath: second))
+    }
+
+    private func posixPermissions(of url: URL) throws -> Int {
+        let attributes = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard let number = attributes[.posixPermissions] as? NSNumber else {
+            throw NSError(domain: "ImageStorageTests", code: 1)
+        }
+        return number.intValue
     }
 }

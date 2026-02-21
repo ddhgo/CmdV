@@ -32,9 +32,9 @@ Notarization options:
 ## 3) One-Time Notary Profile Setup (Recommended)
 
 ```bash
-APPLE_ID="you@example.com" \
-APPLE_TEAM_ID="ABCDE12345" \
-APPLE_APP_SPECIFIC_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+APPLE_ID="<YOUR_APPLE_ID>" \
+APPLE_TEAM_ID="<YOUR_TEAM_ID>" \
+APPLE_APP_SPECIFIC_PASSWORD="<APP_SPECIFIC_PASSWORD>" \
 scripts/setup_notary_profile.sh --profile CmdVNotary
 ```
 
@@ -46,6 +46,10 @@ APP_SIGN_IDENTITY="Developer ID Application: Your Name (ABCDE12345)" \
 NOTARY_PROFILE="CmdVNotary" \
 scripts/release_signed_notarized_dmg.sh
 ```
+
+Credential safety:
+- Prefer `NOTARY_PROFILE` and avoid entering passwords directly in terminal commands.
+- Keep real credentials in Keychain/GitHub Secrets only.
 
 Output:
 

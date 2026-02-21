@@ -6,6 +6,7 @@ private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self
 enum SQLiteHistoryDatabaseError: Error {
     case openFailed(String)
     case migrationFailed(String)
+    case permissionFailed(String)
 }
 
 final class SQLiteHistoryDatabase {
@@ -17,6 +18,12 @@ final class SQLiteHistoryDatabase {
         if sqlite3_open_v2(databaseURL.path, &db, flags, nil) != SQLITE_OK {
             let message = String(cString: sqlite3_errmsg(db))
             throw SQLiteHistoryDatabaseError.openFailed(message)
+        }
+
+        do {
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: databaseURL.path)
+        } catch {
+            throw SQLiteHistoryDatabaseError.permissionFailed(error.localizedDescription)
         }
 
         do {
