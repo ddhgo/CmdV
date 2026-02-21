@@ -9,7 +9,9 @@ final class HistoryStore: ObservableObject {
     private let database: SQLiteHistoryDatabase
     private let imageStorage: ImageStorage
     private let queue = DispatchQueue(label: "CmdV.HistoryStoreQueue", qos: .userInitiated)
+    private let settingsSnapshotQueue = DispatchQueue(label: "CmdV.HistoryStoreSettingsSnapshotQueue")
     private let nearDuplicateSuppressionWindow: TimeInterval = 8
+    private var maxHistoryItemsSnapshot: Int
 
     private var lastInsertedTextFingerprint: String?
     private var lastInsertedTextSourceBundleID: String?
@@ -19,6 +21,7 @@ final class HistoryStore: ObservableObject {
 
     init(settings: SettingsStore, appSupportDirectory: URL? = nil) throws {
         self.settings = settings
+        maxHistoryItemsSnapshot = settings.maxHistoryItems
 
         let resolvedAppSupportDirectory = try appSupportDirectory ?? Self.createAppSupportDirectory()
         database = try SQLiteHistoryDatabase(databaseURL: resolvedAppSupportDirectory.appendingPathComponent("history.sqlite3"))
@@ -27,6 +30,9 @@ final class HistoryStore: ObservableObject {
         settings.$maxHistoryItems
             .dropFirst()
             .sink { [weak self] capacity in
+                self?.settingsSnapshotQueue.async { [weak self] in
+                    self?.maxHistoryItemsSnapshot = capacity
+                }
                 self?.trimToCapacity(limit: capacity)
             }
             .store(in: &cancellables)
@@ -245,8 +251,8 @@ final class HistoryStore: ObservableObject {
             return settings.maxHistoryItems
         }
 
-        return DispatchQueue.main.sync {
-            settings.maxHistoryItems
+        return settingsSnapshotQueue.sync {
+            maxHistoryItemsSnapshot
         }
     }
 

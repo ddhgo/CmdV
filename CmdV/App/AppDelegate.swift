@@ -389,7 +389,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
         }
 
-        return (focusedElementRef as! AXUIElement)
+        return axUIElement(from: focusedElementRef)
     }
 
     private func focusedWindow(for application: NSRunningApplication?) -> AXUIElement? {
@@ -415,7 +415,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
         }
 
-        return (focusedWindowRef as! AXUIElement)
+        return axUIElement(from: focusedWindowRef)
+    }
+
+    private func axUIElement(from value: CFTypeRef?) -> AXUIElement? {
+        guard
+            let value,
+            CFGetTypeID(value) == AXUIElementGetTypeID()
+        else {
+            return nil
+        }
+
+        return value as! AXUIElement
     }
 
     private func stopTrackingLastActiveApplication() {
