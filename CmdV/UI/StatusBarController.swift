@@ -21,7 +21,8 @@ private struct MenuActivationSwitchView: View {
             }
         ))
             .labelsHidden()
-            .toggleStyle(SwitchToggleStyle(tint: .blue))
+            .toggleStyle(.switch)
+            .tint(.blue)
             .disabled(false)
             .controlSize(.small)
             .fixedSize(horizontal: true, vertical: false)
