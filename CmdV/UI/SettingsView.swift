@@ -39,6 +39,7 @@ struct SettingsView: View {
     private let cardContentInset: CGFloat = 12
     private let settingsLabelFont = Font.system(size: 12, weight: .regular)
     private let developerAddressURL = "https://github.com/rtfdev"
+    private let sponsorURL = "https://github.com/sponsors/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
 
     private var language: AppLanguage {
@@ -193,15 +194,6 @@ struct SettingsView: View {
                     .controlSize(.small)
                 }
 
-                generalFieldRow(label: AppText.value(.settingsLaunchAtLogin, language: language)) {
-                    Toggle("", isOn: launchAtLoginBinding)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                        .controlSize(.small)
-                }
-
-                generalClearOnSystemRestartRow
-
                 generalHistoryCapacityRow
 
                 generalFieldRow(
@@ -232,6 +224,15 @@ struct SettingsView: View {
                         .frame(height: generalControlHeight)
                     }
                 }
+
+                generalFieldRow(label: AppText.value(.settingsLaunchAtLogin, language: language)) {
+                    Toggle("", isOn: launchAtLoginBinding)
+                        .labelsHidden()
+                        .toggleStyle(.switch)
+                        .controlSize(.small)
+                }
+
+                generalClearOnSystemRestartRow
             }
         }
     }
@@ -243,20 +244,19 @@ struct SettingsView: View {
         ) {
             VStack(alignment: .center, spacing: 8) {
                 aboutValueRow {
-                    Text("CmdV")
-                        .font(.system(size: 13))
-                        .foregroundStyle(.primary)
+                    HStack(spacing: 8) {
+                        Text("CmdV")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.primary)
+
+                        Text(appVersionText)
+                            .foregroundStyle(.secondary)
+                            .font(.system(size: 13, weight: .medium))
+                    }
                 }
 
                 aboutValueRow {
-                    Text(appVersionText)
-                        .foregroundStyle(.secondary)
-                        .font(.callout)
-                        .italic()
-                }
-
-                aboutValueRow {
-                    Text("rtfdev")
+                    Text("by rtfdev")
                         .foregroundStyle(.secondary)
                         .font(.callout)
                 }
@@ -275,6 +275,15 @@ struct SettingsView: View {
                         openExternalURL(feedbackURL)
                     }
                     .buttonStyle(.bordered)
+                    .font(.callout)
+                    .controlSize(.small)
+                }
+
+                aboutValueRow {
+                    Button(AppText.value(.settingsSponsorAuthor, language: language)) {
+                        openExternalURL(sponsorURL)
+                    }
+                    .buttonStyle(.borderedProminent)
                     .font(.callout)
                     .controlSize(.small)
                 }
@@ -580,18 +589,9 @@ struct SettingsView: View {
 
     private var appVersionText: String {
         let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
-
-        switch (shortVersion, buildVersion) {
-        case (let short?, let build?) where !short.isEmpty && !build.isEmpty:
-            return "\(short) (\(build))"
-        case (let short?, _):
-            return short
-        case (_, let build?):
-            return build
-        default:
-            return "1.0"
-        }
+        return shortVersion?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? shortVersion ?? "1.0"
+            : (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "1.0"
     }
 
     private func openExternalURL(_ value: String) {

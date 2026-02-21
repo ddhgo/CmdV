@@ -340,6 +340,7 @@ enum AppTextKey {
     case settingsFeedback
     case settingsDeveloperAddressOpen
     case settingsSendFeedback
+    case settingsSponsorAuthor
     case settingsLanguage
     case settingsPauseRecording
     case settingsLaunchAtLogin
@@ -523,6 +524,8 @@ enum AppText {
             return "Website"
         case .settingsSendFeedback:
             return "Report issue"
+        case .settingsSponsorAuthor:
+            return "Support the creator"
         case .settingsLanguage:
             return "Language"
         case .settingsPauseRecording:
@@ -718,6 +721,8 @@ enum AppText {
             return "웹사이트"
         case .settingsSendFeedback:
             return "이슈 등록"
+        case .settingsSponsorAuthor:
+            return "제작자에게 후원하기"
         case .settingsLanguage:
             return "언어"
         case .settingsPauseRecording:
