@@ -754,7 +754,7 @@ enum AppText {
         case .settingsGlobalHotkey:
             return "전역 단축키"
         case .settingsGlobalHotkeyHint:
-            return "단축키로 클립보드 기록 창을 열고 닫습니다."
+            return "단축키로 클립보드 기록 창을\n열고 닫습니다."
         case .settingsCurrentShortcut:
             return "현재 단축키"
         case .settingsHotkeyKey:

@@ -130,6 +130,82 @@ final class HistoryStoreIntegrationTests: XCTestCase {
         XCTAssertTrue(historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited }))
     }
 
+    func testRecopyingThirdFileEntryMovesToTopAndDoesNotDuplicate() {
+        let firstURL = makeTemporaryTextFile(name: "first.txt", content: "first")
+        let secondURL = makeTemporaryTextFile(name: "second.txt", content: "second")
+        let thirdURL = makeTemporaryTextFile(name: "third.txt", content: "third")
+
+        historyStore.addFileURLsIfNeeded([firstURL], sourceBundleID: nil)
+        historyStore.addFileURLsIfNeeded([secondURL], sourceBundleID: nil)
+        historyStore.addFileURLsIfNeeded([thirdURL], sourceBundleID: nil)
+
+        waitUntil("three file items inserted") {
+            self.historyStore.items.count == 3
+        }
+
+        guard let thirdItemID = historyStore.items.first(where: { $0.type == .file })?.id else {
+            XCTFail("Expected a file item in history")
+            return
+        }
+
+        historyStore.addFileURLsIfNeeded([thirdURL], sourceBundleID: nil)
+
+        waitUntil("recopied file moved to top without duplicate") {
+            self.historyStore.items.count == 3 &&
+            self.historyStore.items.first?.id == thirdItemID
+        }
+    }
+
+    func testRecopyingPinnedItemKeepsPinnedState() {
+        historyStore.addTextIfNeeded("Pinned Item", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("Newest One", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("Newest Two", sourceBundleID: nil)
+
+        waitUntil("three text items inserted") {
+            self.historyStore.items.count == 3
+        }
+
+        guard let pinnedItemID = self.historyStore.items.last(where: { $0.textContent == "Pinned Item" })?.id else {
+            XCTFail("Expected pinned item")
+            return
+        }
+
+        historyStore.setPinned(itemID: pinnedItemID, isPinned: true)
+        waitUntil("pinned state applied") {
+            self.historyStore.items.contains(where: { $0.id == pinnedItemID && $0.isPinned })
+        }
+
+        historyStore.addTextIfNeeded("Pinned Item", sourceBundleID: nil)
+
+        waitUntil("pinned item moved to top and stays pinned") {
+            self.historyStore.items.count == 3 &&
+            self.historyStore.items.first?.id == pinnedItemID &&
+            self.historyStore.items.first?.isPinned == true
+        }
+    }
+
+    func testRecopyingTextMovesExistingEntryToTop() {
+        historyStore.addTextIfNeeded("First", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("Second", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("Third", sourceBundleID: nil)
+
+        waitUntil("three text items inserted") {
+            self.historyStore.items.count == 3
+        }
+
+        guard let firstID = self.historyStore.items.last(where: { $0.textContent == "First" })?.id else {
+            XCTFail("Expected first item")
+            return
+        }
+
+        historyStore.addTextIfNeeded("First", sourceBundleID: nil)
+
+        waitUntil("first text item moved to top without duplicate") {
+            self.historyStore.items.count == 3 &&
+            self.historyStore.items.first?.id == firstID
+        }
+    }
+
     private func waitUntil(
         _ description: String,
         timeout: TimeInterval = 2.0,
@@ -145,5 +221,11 @@ final class HistoryStoreIntegrationTests: XCTestCase {
         }
 
         XCTFail("Timed out waiting for \(description)")
+    }
+
+    private func makeTemporaryTextFile(name: String, content: String) -> URL {
+        let fileURL = temporaryDirectory.appendingPathComponent(name)
+        FileManager.default.createFile(atPath: fileURL.path, contents: content.data(using: .utf8))
+        return fileURL
     }
 }

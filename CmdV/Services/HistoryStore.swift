@@ -26,6 +26,7 @@ final class HistoryStore: ObservableObject {
         let resolvedAppSupportDirectory = try appSupportDirectory ?? Self.createAppSupportDirectory()
         database = try SQLiteHistoryDatabase(databaseURL: resolvedAppSupportDirectory.appendingPathComponent("history.sqlite3"))
         imageStorage = try ImageStorage(baseDirectory: resolvedAppSupportDirectory)
+        database.removeDuplicateItemsByTypeAndContentHash()
 
         settings.$maxHistoryItems
             .dropFirst()
@@ -62,20 +63,26 @@ final class HistoryStore: ObservableObject {
 
             let now = Date()
 
-            if self.shouldSuppressNearDuplicateText(
-                fingerprint: fingerprint,
-                sourceBundleID: sourceBundleID,
-                now: now
-            ) {
-                return
-            }
-
-            if self.database.latestHash() == hash {
+            if let existingID = self.database.findMostRecentItemID(type: .text, contentHash: hash) {
+                self.database.bumpItemToTop(
+                    itemID: existingID,
+                    createdAt: now,
+                    sourceBundleID: sourceBundleID
+                )
                 self.recordLatestTextCapture(
                     fingerprint: fingerprint,
                     sourceBundleID: sourceBundleID,
                     at: now
                 )
+                self.publishLatestItems(limit: capacity)
+                return
+            }
+
+            if self.shouldSuppressNearDuplicateText(
+                fingerprint: fingerprint,
+                sourceBundleID: sourceBundleID,
+                now: now
+            ) {
                 return
             }
 
@@ -110,7 +117,13 @@ final class HistoryStore: ObservableObject {
                 return
             }
 
-            if self.database.latestHash() == hash {
+            if let existingID = self.database.findMostRecentItemID(type: .image, contentHash: hash) {
+                self.database.bumpItemToTop(
+                    itemID: existingID,
+                    createdAt: Date(),
+                    sourceBundleID: sourceBundleID
+                )
+                self.publishLatestItems(limit: capacity)
                 return
             }
 
@@ -149,7 +162,13 @@ final class HistoryStore: ObservableObject {
                 return
             }
 
-            if self.database.latestHash() == hash {
+            if let existingID = self.database.findMostRecentItemID(type: .file, contentHash: hash) {
+                self.database.bumpItemToTop(
+                    itemID: existingID,
+                    createdAt: Date(),
+                    sourceBundleID: sourceBundleID
+                )
+                self.publishLatestItems(limit: capacity)
                 return
             }
 

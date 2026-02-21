@@ -131,6 +131,117 @@ final class SQLiteHistoryDatabase {
         return columnString(statement: statement, at: 0)
     }
 
+    func findMostRecentItemID(
+        type: ClipboardItemType,
+        contentHash: String
+    ) -> Int64? {
+        guard let statement = prepare(
+            """
+            SELECT id
+            FROM history_items
+            WHERE type = ? AND content_hash = ?
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1;
+            """
+        ) else {
+            return nil
+        }
+
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_text(statement, 1, type.rawValue, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 2, contentHash, -1, sqliteTransient)
+
+        guard sqlite3_step(statement) == SQLITE_ROW else {
+            return nil
+        }
+
+        return sqlite3_column_int64(statement, 0)
+    }
+
+    func removeDuplicateItemsByTypeAndContentHash() {
+        let fetchAllStatementSQL = """
+            SELECT id, type, content_hash, is_pinned, is_favorited
+            FROM history_items
+            ORDER BY type, content_hash, created_at DESC, id DESC;
+            """
+
+        guard let statement = prepare(fetchAllStatementSQL) else {
+            return
+        }
+
+        defer { sqlite3_finalize(statement) }
+
+        struct GroupState {
+            let keepID: Int64
+            var shouldKeepPinned: Bool
+            var shouldKeepFavorited: Bool
+            var duplicateIDs: [Int64]
+        }
+
+        var groupedItems: [String: GroupState] = [:]
+
+        while sqlite3_step(statement) == SQLITE_ROW {
+            let id = sqlite3_column_int64(statement, 0)
+            let typeString = columnString(statement: statement, at: 1) ?? ClipboardItemType.text.rawValue
+            let hash = columnString(statement: statement, at: 2) ?? ""
+            let isPinned = sqlite3_column_int(statement, 3) == 1
+            let isFavorited = sqlite3_column_int(statement, 4) == 1
+
+            guard !typeString.isEmpty else {
+                continue
+            }
+
+            let key = "\(typeString)|\(hash)"
+
+            if var state = groupedItems[key] {
+                state.shouldKeepPinned = state.shouldKeepPinned || isPinned
+                state.shouldKeepFavorited = state.shouldKeepFavorited || isFavorited
+                state.duplicateIDs.append(id)
+                groupedItems[key] = state
+                continue
+            }
+
+            groupedItems[key] = GroupState(
+                keepID: id,
+                shouldKeepPinned: isPinned,
+                shouldKeepFavorited: isFavorited,
+                duplicateIDs: []
+            )
+        }
+
+        for (_, state) in groupedItems where !state.duplicateIDs.isEmpty {
+            if state.shouldKeepPinned {
+                setPinned(itemID: state.keepID, isPinned: true)
+            }
+
+            if state.shouldKeepFavorited {
+                setFavorited(itemID: state.keepID, isFavorited: true)
+            }
+
+            for duplicateID in state.duplicateIDs {
+                _ = deleteItem(id: duplicateID)
+            }
+        }
+    }
+
+    func bumpItemToTop(itemID: Int64, createdAt: Date, sourceBundleID: String?) {
+        guard let statement = prepare(
+            """
+            UPDATE history_items
+            SET created_at = ?, source_bundle_id = ?
+            WHERE id = ?;
+            """
+        ) else {
+            return
+        }
+
+        defer { sqlite3_finalize(statement) }
+        sqlite3_bind_double(statement, 1, createdAt.timeIntervalSince1970)
+        bindOptionalString(sourceBundleID, to: 2, in: statement)
+        sqlite3_bind_int64(statement, 3, itemID)
+        _ = sqlite3_step(statement)
+    }
+
     @discardableResult
     func insertText(
         text: String,

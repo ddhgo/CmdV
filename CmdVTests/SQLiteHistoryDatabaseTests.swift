@@ -225,4 +225,116 @@ final class SQLiteHistoryDatabaseTests: XCTestCase {
         XCTAssertEqual(items.count, 2)
         XCTAssertTrue(items.contains(where: { $0.id == favoritedID && $0.isFavorited }))
     }
+
+    func testFindMostRecentItemIDReturnsLatestMatchForSameType() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_500)
+        let sharedHash = "hash-duplicate"
+
+        _ = database.insertText(
+            text: "old",
+            hash: sharedHash,
+            createdAt: baseDate,
+            sourceBundleID: nil
+        )
+        let secondID = database.insertText(
+            text: "new",
+            hash: sharedHash,
+            createdAt: baseDate.addingTimeInterval(10),
+            sourceBundleID: nil
+        )
+
+        _ = database.insertText(
+            text: "other",
+            hash: "hash-other",
+            createdAt: baseDate.addingTimeInterval(20),
+            sourceBundleID: nil
+        )
+
+        XCTAssertEqual(database.findMostRecentItemID(type: .text, contentHash: sharedHash), secondID)
+        XCTAssertNotEqual(database.findMostRecentItemID(type: .image, contentHash: sharedHash), secondID)
+    }
+
+    func testBumpItemToTopReordersByUpdatedTimestamp() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_600)
+
+        let firstID = database.insertText(
+            text: "first",
+            hash: "hash-first",
+            createdAt: baseDate,
+            sourceBundleID: nil
+        )
+        let secondID = database.insertText(
+            text: "second",
+            hash: "hash-second",
+            createdAt: baseDate.addingTimeInterval(10),
+            sourceBundleID: nil
+        )
+
+        let bumpedAt = baseDate.addingTimeInterval(20)
+        database.bumpItemToTop(itemID: firstID, createdAt: bumpedAt, sourceBundleID: "com.example.bumped")
+
+        let items = database.fetchRecentItems(limit: 2)
+        guard let firstItem = items.first else {
+            XCTFail("Expected first item after bump")
+            return
+        }
+
+        XCTAssertEqual(firstItem.id, firstID)
+        XCTAssertEqual(firstItem.createdAt.timeIntervalSince1970, bumpedAt.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertEqual(firstItem.sourceBundleID, "com.example.bumped")
+        XCTAssertEqual(items.count, 2)
+        XCTAssertEqual(items[1].id, secondID)
+    }
+
+    func testDeduplicatesSameTypeAndHashKeepingLatestAndPinnedState() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_700)
+        let sharedHash = "hash-duplicate"
+
+        _ = database.insertText(
+            text: "first",
+            hash: sharedHash,
+            createdAt: baseDate,
+            sourceBundleID: nil
+        )
+        let secondID = database.insertText(
+            text: "second",
+            hash: sharedHash,
+            createdAt: baseDate.addingTimeInterval(10),
+            sourceBundleID: nil
+        )
+        let thirdID = database.insertText(
+            text: "third",
+            hash: sharedHash,
+            createdAt: baseDate.addingTimeInterval(20),
+            sourceBundleID: nil
+        )
+
+        _ = database.insertText(
+            text: "first",
+            hash: "hash-other",
+            createdAt: baseDate.addingTimeInterval(30),
+            sourceBundleID: nil
+        )
+
+        database.setPinned(itemID: secondID, isPinned: true)
+        database.setFavorited(itemID: secondID, isFavorited: true)
+
+        database.removeDuplicateItemsByTypeAndContentHash()
+
+        let deduped = database.fetchRecentItems(limit: 10)
+        let duplicateTypeRows = deduped.filter { $0.type == .text && $0.contentHash == sharedHash }
+
+        XCTAssertEqual(duplicateTypeRows.count, 1)
+        guard let keptItem = duplicateTypeRows.first else {
+            XCTFail("Expected one deduplicated text row to remain")
+            return
+        }
+
+        XCTAssertEqual(keptItem.id, thirdID)
+        XCTAssertTrue(keptItem.isPinned)
+        XCTAssertTrue(keptItem.isFavorited)
+    }
 }

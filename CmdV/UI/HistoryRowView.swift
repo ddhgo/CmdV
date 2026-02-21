@@ -181,13 +181,6 @@ struct HistoryRowView: View {
 
     @ViewBuilder
     private var rowMenuItems: some View {
-        Button(AppText.value(.popupCopy, language: language)) {
-            onCopy(item)
-        }
-        .onDisappear {
-            onMenuClose()
-        }
-
         if hasOpenAction {
             Button(AppText.value(.popupOpen, language: language)) {
                 onOpen(item)
@@ -195,10 +188,24 @@ struct HistoryRowView: View {
             .onDisappear {
                 onMenuClose()
             }
+            Divider()
+        }
+
+        Button(AppText.value(.popupCopy, language: language)) {
+            onCopy(item)
+        }
+        .onDisappear {
+            onMenuClose()
         }
 
         if hasShareAction {
             shareAction
+                .onDisappear {
+                    onMenuClose()
+                }
+        }
+
+        if hasOpenAction || hasShareAction {
             Divider()
         }
 
