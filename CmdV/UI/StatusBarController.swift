@@ -188,7 +188,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     var onSetRecordingEnabled: ((Bool) -> Void)?
     var onQuit: (() -> Void)?
 
-    private let statusItem = NSStatusBar.system.statusItem(withLength: 40)
+    private let statusItem = NSStatusBar.system.statusItem(withLength: 36)
     private let menu = NSMenu()
     private var menuKeyMonitor: Any?
     private var menuGlobalKeyMonitor: Any?
@@ -210,7 +210,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var appLanguage: AppLanguage = .english
     private var hotkeyConfiguration: HotkeyConfiguration = .default
     private var isRecordingPaused = false
-    private var isStatusItemMenuHighlighted = false
     private let menuBarIconSize = NSSize(width: 20, height: 20)
     private lazy var activeMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 1.0, alpha: 1.0))
     private lazy var pausedMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 0.62, alpha: 1.0))
@@ -238,18 +237,13 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     }
 
     private func configureStatusItem() {
+        statusItem.menu = menu
+
         if let button = statusItem.button {
             button.image = activeMenuBarIcon
             button.imageScaling = .scaleProportionallyUpOrDown
             button.imagePosition = .imageOnly
             button.toolTip = "CmdV"
-            button.target = self
-            button.action = #selector(handleStatusItemClick(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-            button.wantsLayer = true
-            button.layer?.cornerRadius = button.bounds.height / 2
-            button.layer?.masksToBounds = true
-            updateStatusItemMenuHighlight(false, animated: false)
             applyStatusIconAppearance()
         }
     }
@@ -421,23 +415,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         return ""
     }
 
-    @objc private func handleStatusItemClick(_ sender: NSStatusBarButton) {
-        showMenu(anchor: sender)
-    }
-
-    private func showMenu(anchor button: NSStatusBarButton) {
-        NSRunningApplication.current.activate(options: [.activateIgnoringOtherApps])
-        NSApp.activate(ignoringOtherApps: true)
-        updateStatusItemMenuHighlight(true, animated: true)
-        DispatchQueue.main.async { [weak self, weak button] in
-            guard let self, let button else {
-                return
-            }
-
-            self.menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.maxY + 4), in: button)
-        }
-    }
-
     @objc private func openHistory() {
         onTogglePopup?()
     }
@@ -455,7 +432,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         isMenuOpen = true
         didHandleMenuHotkey = false
-        updateStatusItemMenuHighlight(true, animated: true)
         if activationHeaderItem.view == nil {
             activationHeaderItem.view = activationHeaderView
         }
@@ -471,7 +447,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     func menuDidClose(_ menu: NSMenu) {
         isMenuOpen = false
         didHandleMenuHotkey = false
-        updateStatusItemMenuHighlight(false, animated: true)
         removeMenuHotkeyMonitor()
     }
 
@@ -558,33 +533,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             NSEvent.removeMonitor(menuGlobalKeyMonitor)
             self.menuGlobalKeyMonitor = nil
         }
-    }
-
-    private func updateStatusItemMenuHighlight(_ highlighted: Bool, animated: Bool) {
-        guard let button = statusItem.button else {
-            return
-        }
-
-        if isStatusItemMenuHighlighted == highlighted, button.layer?.backgroundColor != nil {
-            return
-        }
-
-        isStatusItemMenuHighlighted = highlighted
-        let highlightColor = NSColor(name: nil) { appearance in
-            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                return NSColor(white: 0.70, alpha: 0.46)
-            }
-            return NSColor(white: 0.56, alpha: 0.30)
-        }.cgColor
-        let nextColor = highlighted ? highlightColor : NSColor.clear.cgColor
-
-        CATransaction.begin()
-        CATransaction.setAnimationDuration(animated ? 0.12 : 0.0)
-        CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .easeOut))
-        CATransaction.setDisableActions(!animated)
-        button.layer?.cornerRadius = button.bounds.height / 2
-        button.layer?.backgroundColor = nextColor
-        CATransaction.commit()
     }
 
     private func matchesConfiguredHotkey(_ event: NSEvent) -> Bool {
