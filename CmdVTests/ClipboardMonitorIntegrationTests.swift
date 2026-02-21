@@ -132,6 +132,7 @@ private final class FakePasteboardReader: PasteboardReading {
     var plainText: String?
     var utf8Text: String?
     var utf16Text: String?
+    var capturedFileURLs: [URL] = []
     var rtfData: Data?
     var pngData: Data?
     var tiffData: Data?
@@ -167,6 +168,10 @@ private final class FakePasteboardReader: PasteboardReading {
         default:
             return nil
         }
+    }
+
+    func fileURLs() -> [URL] {
+        capturedFileURLs
     }
 
     func firstImageTIFFRepresentation() -> Data? {

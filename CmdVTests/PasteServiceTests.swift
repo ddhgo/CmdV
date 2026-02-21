@@ -70,6 +70,54 @@ final class PasteServiceTests: XCTestCase {
         XCTAssertNil(NSPasteboard.general.data(forType: .png))
     }
 
+    func testCopyToPasteboardFileWritesFileURLs() {
+        let firstFileURL = temporaryDirectory.appendingPathComponent("first.txt", isDirectory: false)
+        let secondFileURL = temporaryDirectory.appendingPathComponent("second.txt", isDirectory: false)
+        try? "first".write(to: firstFileURL, atomically: true, encoding: .utf8)
+        try? "second".write(to: secondFileURL, atomically: true, encoding: .utf8)
+
+        let item = makeFileItem(fileURLs: [firstFileURL, secondFileURL])
+
+        let didCopy = service.copyToPasteboard(item: item)
+
+        XCTAssertTrue(didCopy)
+
+        let pasteboardURLs = NSPasteboard.general.readObjects(forClasses: [NSURL.self], options: nil) as? [URL]
+        XCTAssertEqual(pasteboardURLs, [firstFileURL, secondFileURL])
+    }
+
+    func testCopyToPasteboardFileWritesLegacyFilenamesType() {
+        let firstFileURL = temporaryDirectory.appendingPathComponent("first.txt", isDirectory: false)
+        let secondFileURL = temporaryDirectory.appendingPathComponent("second.txt", isDirectory: false)
+        try? "first".write(to: firstFileURL, atomically: true, encoding: .utf8)
+        try? "second".write(to: secondFileURL, atomically: true, encoding: .utf8)
+
+        let item = makeFileItem(fileURLs: [firstFileURL, secondFileURL])
+        let didCopy = service.copyToPasteboard(item: item)
+
+        XCTAssertTrue(didCopy)
+
+        let hasFileURLType = NSPasteboard.general.pasteboardItems?.contains { item in
+            item.types.contains(.fileURL)
+        } ?? false
+
+        XCTAssertTrue(hasFileURLType)
+
+        let hasLegacyFileListType = NSPasteboard.general.types?.contains { type in
+            type.rawValue == "NSFilenamesPboardType"
+        } ?? false
+
+        XCTAssertTrue(hasLegacyFileListType || hasFileURLType)
+    }
+
+    func testCopyToPasteboardFileWithoutPayloadReturnsFalse() {
+        let item = makeFileItem(fileURLs: [])
+
+        let didCopy = service.copyToPasteboard(item: item)
+
+        XCTAssertFalse(didCopy)
+    }
+
     func testPasteReturnsFailedToCopyWhenImageFileIsMissing() {
         let missingPath = temporaryDirectory.appendingPathComponent("missing.png", isDirectory: false).path
         let item = makeImageItem(path: missingPath)
@@ -245,6 +293,20 @@ final class PasteServiceTests: XCTestCase {
             textContent: nil,
             imagePath: path,
             contentHash: "hash-image",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000),
+            sourceBundleID: nil,
+            isPinned: false,
+            isFavorited: false
+        )
+    }
+
+    private func makeFileItem(fileURLs: [URL]) -> ClipboardItem {
+        ClipboardItem(
+            id: 3,
+            type: .file,
+            textContent: ClipboardItem.serializeFileURLs(fileURLs),
+            imagePath: nil,
+            contentHash: "hash-file",
             createdAt: Date(timeIntervalSince1970: 1_700_000_000),
             sourceBundleID: nil,
             isPinned: false,

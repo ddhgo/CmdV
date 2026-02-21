@@ -17,6 +17,8 @@ protocol AccessibilityPermissionChecking {
 }
 
 final class PasteService {
+    private static let filenamesPboardType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
+
     private let permissions: AccessibilityPermissionChecking
     private let sendCommandVShortcutHandler: () -> Bool
     private let frontmostApplicationProvider: () -> NSRunningApplication?
@@ -151,12 +153,28 @@ final class PasteService {
         case .file:
             pasteboard.clearContents()
 
-            guard !item.fileURLs.isEmpty else {
+            let fileURLs = item.fileURLs
+
+            guard !fileURLs.isEmpty else {
                 return false
             }
 
-            return pasteboard.writeObjects(item.fileURLs.map { $0 as NSURL })
+            let objectWriteSucceeded = pasteboard.writeObjects(fileURLs.map { $0 as NSURL })
+            if !objectWriteSucceeded {
+                return writeFileHistoryCompatibilityPayload(fileURLs: fileURLs, to: pasteboard)
+            }
+
+            _ = writeFileHistoryCompatibilityPayload(fileURLs: fileURLs, to: pasteboard)
+            return true
         }
+    }
+
+    private func writeFileHistoryCompatibilityPayload(
+        fileURLs: [URL],
+        to pasteboard: NSPasteboard
+    ) -> Bool {
+        let filePaths = fileURLs.map(\.path)
+        return pasteboard.setPropertyList(filePaths, forType: Self.filenamesPboardType)
     }
 
     private func copyImageToPasteboardAsync(
