@@ -287,6 +287,13 @@ enum AppTextKey {
 
     case settingsTitle
     case settingsGeneral
+    case settingsAbout
+    case settingsDeveloperName
+    case settingsDeveloperAddress
+    case settingsVersion
+    case settingsFeedback
+    case settingsDeveloperAddressOpen
+    case settingsSendFeedback
     case settingsLanguage
     case settingsPauseRecording
     case settingsLaunchAtLogin
@@ -424,6 +431,20 @@ enum AppText {
             return "CmdV Settings"
         case .settingsGeneral:
             return "General"
+        case .settingsAbout:
+            return "About"
+        case .settingsDeveloperName:
+            return "Developer"
+        case .settingsDeveloperAddress:
+            return "Related Address"
+        case .settingsVersion:
+            return "Version"
+        case .settingsFeedback:
+            return "Feedback"
+        case .settingsDeveloperAddressOpen:
+            return "Open Website"
+        case .settingsSendFeedback:
+            return "Send Feedback"
         case .settingsLanguage:
             return "Language"
         case .settingsPauseRecording:
@@ -563,6 +584,20 @@ enum AppText {
             return "CmdV 설정"
         case .settingsGeneral:
             return "일반"
+        case .settingsAbout:
+            return "정보"
+        case .settingsDeveloperName:
+            return "개발자"
+        case .settingsDeveloperAddress:
+            return "관련 주소"
+        case .settingsVersion:
+            return "버전"
+        case .settingsFeedback:
+            return "피드백"
+        case .settingsDeveloperAddressOpen:
+            return "웹사이트 열기"
+        case .settingsSendFeedback:
+            return "피드백 보내기"
         case .settingsLanguage:
             return "언어"
         case .settingsPauseRecording:

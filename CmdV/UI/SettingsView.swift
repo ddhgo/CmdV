@@ -11,6 +11,8 @@ struct SettingsView: View {
 
     @State private var labelColumnWidth: CGFloat = 148
     private let compactCardHeight: CGFloat = 60
+    private let developerAddressURL = "https://github.com/rtfdev"
+    private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
 
     private var language: AppLanguage {
         settings.appLanguage
@@ -20,6 +22,7 @@ struct SettingsView: View {
         ScrollView(.vertical) {
             VStack(alignment: .leading, spacing: 12) {
                 generalSection
+                aboutSection
                 compactControlsRow
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,9 +57,9 @@ struct SettingsView: View {
     static func preferredWindowSize(for language: AppLanguage) -> CGSize {
         switch language {
         case .english:
-            return CGSize(width: 540, height: 360)
+            return CGSize(width: 540, height: 430)
         case .korean:
-            return CGSize(width: 540, height: 360)
+            return CGSize(width: 540, height: 430)
         }
     }
 
@@ -130,6 +133,38 @@ struct SettingsView: View {
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var aboutSection: some View {
+        settingsCard(title: AppText.value(.settingsAbout, language: language)) {
+            VStack(alignment: .leading, spacing: 8) {
+                fieldRow(label: AppText.value(.settingsDeveloperName, language: language)) {
+                    Text("rtfdev")
+                        .foregroundStyle(.secondary)
+                }
+
+                fieldRow(label: AppText.value(.settingsDeveloperAddress, language: language)) {
+                    Button(AppText.value(.settingsDeveloperAddressOpen, language: language)) {
+                        openExternalURL(developerAddressURL)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+
+                fieldRow(label: AppText.value(.settingsVersion, language: language)) {
+                    Text(appVersionText)
+                        .foregroundStyle(.secondary)
+                }
+
+                fieldRow(label: AppText.value(.settingsFeedback, language: language)) {
+                    Button(AppText.value(.settingsSendFeedback, language: language)) {
+                        openExternalURL(feedbackURL)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
             }
         }
     }
@@ -326,6 +361,29 @@ struct SettingsView: View {
                 )
             }
         )
+    }
+
+    private var appVersionText: String {
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+
+        switch (shortVersion, buildVersion) {
+        case (let short?, let build?) where !short.isEmpty && !build.isEmpty:
+            return "\(short) (\(build))"
+        case (let short?, _):
+            return short
+        case (_, let build?):
+            return build
+        default:
+            return "1.0"
+        }
+    }
+
+    private func openExternalURL(_ value: String) {
+        guard let url = URL(string: value) else {
+            return
+        }
+        NSWorkspace.shared.open(url)
     }
 
     private var hotkeyKeyBinding: Binding<UInt32> {
