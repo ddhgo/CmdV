@@ -24,11 +24,16 @@ struct SettingsView: View {
     @State private var contentSize: CGSize = .zero
     @State private var tabBarWidth: CGFloat = 0
     private let fixedWindowWidth = Self.fixedWindowWidth
+    private let generalNumericInputWidth: CGFloat = 162
+    private let generalNumericUnitWidth: CGFloat = 34
+    private let generalNumericRowSpacing: CGFloat = 2
     private let tabSpacing: CGFloat = 5
     private let tabButtonMinSize: CGFloat = 44
     private let tabButtonMaxSize: CGFloat = 78
     private let compactCardHeight: CGFloat = 60
     private let permissionsButtonHeight: CGFloat = 30
+    private let hotkeyControlHeight: CGFloat = 34
+    private let hotkeyKeyControlMinWidth: CGFloat = 80
     private let developerAddressURL = "https://github.com/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
 
@@ -195,7 +200,7 @@ struct SettingsView: View {
                     label: AppText.value(.settingsClipboardPolling, language: language),
                     infoMessage: AppText.value(.settingsClipboardPollingHint, language: language)
                 ) {
-                    HStack(alignment: .center, spacing: 6) {
+                HStack(alignment: .center, spacing: generalNumericRowSpacing) {
                         Stepper(
                             "",
                             value: pollingIntervalBinding,
@@ -217,10 +222,13 @@ struct SettingsView: View {
                         .controlSize(.small)
                         .frame(height: 22)
 
-                        Text("s")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    Text("s")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(width: generalNumericUnitWidth, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: false)
                     }
+                    .frame(width: generalNumericInputWidth, alignment: .trailing)
                 }
             }
         }
@@ -272,7 +280,7 @@ struct SettingsView: View {
 
     private var historyCapacityRow: some View {
         fieldRow(label: AppText.value(.settingsHistoryCapacity, language: language)) {
-            HStack(alignment: .center, spacing: 6) {
+            HStack(alignment: .center, spacing: generalNumericRowSpacing) {
                 Stepper(
                     "",
                     value: historyCapacityBinding,
@@ -297,32 +305,37 @@ struct SettingsView: View {
                 Text(AppText.value(.settingsHistoryCapacityUnit, language: language))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .frame(width: generalNumericUnitWidth, alignment: .leading)
+                    .fixedSize(horizontal: false, vertical: false)
             }
+            .frame(width: generalNumericInputWidth, alignment: .trailing)
         }
     }
 
     private var hotkeySection: some View {
-        settingsCard(
-            title: AppText.value(.settingsGlobalHotkey, language: language),
-            fixedHeight: compactCardHeight
-        ) {
-            HStack(spacing: 10) {
-                Spacer(minLength: 0)
-
-                modifierMenu
-
-                hotkeyKeyMenu
-            }
-            .font(.subheadline)
-
-            if runtimeState.hotkeyRegistrationFailed {
-                Text(AppText.value(.settingsHotkeyUnavailableHint, language: language))
+        settingsCard(title: AppText.value(.settingsGlobalHotkey, language: language)) {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(AppText.value(.settingsGlobalHotkeyHint, language: language))
                     .font(.caption)
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(.secondary)
                     .lineLimit(nil)
                     .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
+
+                HStack(spacing: 8) {
+                    modifierMenu
+                    hotkeyKeyMenu
+                }
+
+                if runtimeState.hotkeyRegistrationFailed {
+                    Text(AppText.value(.settingsHotkeyUnavailableHint, language: language))
+                        .font(.caption)
+                        .foregroundStyle(Color.orange)
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
@@ -554,36 +567,50 @@ struct SettingsView: View {
     }
 
     private var modifierMenu: some View {
-        Menu {
-            modifierMenuItem(title: modifierShortTitle(.command), modifier: .command)
-            modifierMenuItem(title: modifierShortTitle(.option), modifier: .option)
-            modifierMenuItem(title: modifierShortTitle(.control), modifier: .control)
-            modifierMenuItem(title: modifierShortTitle(.shift), modifier: .shift)
+        return Menu {
+            modifierMenuItem(modifier: .command)
+            modifierMenuItem(modifier: .option)
+            modifierMenuItem(modifier: .control)
+            modifierMenuItem(modifier: .shift)
         } label: {
             HStack(spacing: 5) {
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text(activeModifiersLabel)
+                Text(activeModifierSummary)
+                    .font(.system(.body, design: .monospaced, weight: .medium))
                     .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .padding(.horizontal, 10)
-            .frame(height: 34)
-            .modifier(HotkeyControlBackgroundModifier())
+            .frame(height: hotkeyControlHeight)
         }
-        .menuStyle(.borderlessButton)
         .fixedSize(horizontal: true, vertical: false)
+        .menuStyle(.borderedButton)
     }
 
-    private func modifierMenuItem(title: String, modifier: NSEvent.ModifierFlags) -> some View {
+    @ViewBuilder
+    private func modifierMenuItem(modifier: NSEvent.ModifierFlags) -> some View {
+        let symbol = modifierSymbolName(modifier)
+        let isEnabled = settings.isHotkeyModifierEnabled(modifier)
+
         Button {
-            let isEnabled = settings.isHotkeyModifierEnabled(modifier)
             settings.setHotkeyModifier(modifier, enabled: !isEnabled)
         } label: {
-            Text(settings.isHotkeyModifierEnabled(modifier) ? "✓ \(title)" : title)
+            HStack(spacing: 8) {
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .frame(width: 20, alignment: .center)
+                if isEnabled {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                        .accessibilityHidden(true)
+                } else {
+                    Image(systemName: "circle")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Color.secondary.opacity(0.5))
+                        .accessibilityHidden(true)
+                }
+            }
         }
     }
 
@@ -597,50 +624,58 @@ struct SettingsView: View {
                     Text(selected ? "✓ \(option.label)" : option.label)
                 }
             }
-        } label: {
+            } label: {
             HStack(spacing: 6) {
                 Text(
                     HotkeyCatalog.options.first(where: { $0.keyCode == settings.hotkey.keyCode })?.label ?? "V"
                 )
+                .font(.system(.body, design: .monospaced, weight: .medium))
                 .lineLimit(1)
-
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
             }
             .padding(.horizontal, 10)
-            .frame(height: 34, alignment: .center)
-            .frame(minWidth: 88)
-            .modifier(HotkeyControlBackgroundModifier())
+            .frame(height: hotkeyControlHeight, alignment: .center)
+            .frame(minWidth: hotkeyKeyControlMinWidth)
         }
-        .menuStyle(.borderlessButton)
         .fixedSize(horizontal: true, vertical: false)
+        .menuStyle(.borderedButton)
     }
 
-    private var activeModifiersLabel: String {
-        let items: [(NSEvent.ModifierFlags, String)] = [
-            (.command, modifierShortTitle(.command)),
-            (.option, modifierShortTitle(.option)),
-            (.control, modifierShortTitle(.control)),
-            (.shift, modifierShortTitle(.shift))
-        ]
-
-        let enabled = items.compactMap { flag, title in
-            settings.isHotkeyModifierEnabled(flag) ? title : nil
+    private var activeModifierSummary: String {
+        let activeFlags: [NSEvent.ModifierFlags] = [.command, .option, .control, .shift]
+        let items = activeFlags.compactMap { flag in
+            settings.isHotkeyModifierEnabled(flag) ? activeModifierGlyph(flag) : nil
         }
-        return enabled.joined(separator: "+")
+
+        return items.isEmpty
+            ? (language == .korean ? "단일키" : "Key only")
+            : items.joined(separator: " + ")
     }
 
-    private func modifierShortTitle(_ modifier: NSEvent.ModifierFlags) -> String {
+    private func activeModifierGlyph(_ modifier: NSEvent.ModifierFlags) -> String {
         switch modifier {
         case .command:
-            return language == .korean ? "Cmd" : "Cmd"
+            return "⌘"
         case .option:
-            return language == .korean ? "Opt" : "Opt"
+            return "⌥"
         case .control:
-            return language == .korean ? "Ctrl" : "Ctrl"
+            return "⌃"
         case .shift:
-            return AppText.value(.settingsShift, language: language)
+            return "⇧"
+        default:
+            return ""
+        }
+    }
+
+    private func modifierSymbolName(_ modifier: NSEvent.ModifierFlags) -> String {
+        switch modifier {
+        case .command:
+            return "command"
+        case .option:
+            return "option"
+        case .control:
+            return "control"
+        case .shift:
+            return "shift"
         default:
             return ""
         }
@@ -666,20 +701,6 @@ struct SettingsView: View {
                 return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
             }
         )
-    }
-}
-
-private struct HotkeyControlBackgroundModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color(nsColor: .windowBackgroundColor).opacity(0.35))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 1)
-            )
     }
 }
 

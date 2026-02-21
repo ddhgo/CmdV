@@ -308,6 +308,7 @@ enum AppTextKey {
     case settingsClipboardPolling
     case settingsClipboardPollingHint
     case settingsGlobalHotkey
+    case settingsGlobalHotkeyHint
     case settingsCurrentShortcut
     case settingsHotkeyKey
     case settingsHotkeyModifiers
@@ -481,6 +482,8 @@ enum AppText {
             return "How often CmdV checks for clipboard changes. Lower is faster; higher uses less CPU."
         case .settingsGlobalHotkey:
             return "Global Hotkey"
+        case .settingsGlobalHotkeyHint:
+            return "Use a global shortcut to toggle the clipboard history."
         case .settingsCurrentShortcut:
             return "Current shortcut"
         case .settingsHotkeyKey:
@@ -650,6 +653,8 @@ enum AppText {
             return "클립보드 변경을 확인하는 주기입니다. 값이 낮을수록 빠르고, 높을수록 CPU 사용이 줄어듭니다."
         case .settingsGlobalHotkey:
             return "전역 단축키"
+        case .settingsGlobalHotkeyHint:
+            return "단축키로 클립보드 기록 창을 열고 닫습니다."
         case .settingsCurrentShortcut:
             return "현재 단축키"
         case .settingsHotkeyKey:
