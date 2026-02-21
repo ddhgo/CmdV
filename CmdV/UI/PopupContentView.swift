@@ -228,9 +228,15 @@ struct PopupContentView: View {
             ScrollView {
                 if viewModel.filteredItems.isEmpty {
                     VStack(spacing: 6) {
-                        Text(AppText.value(.popupNoClipboardItems, language: viewModel.appLanguage))
+                        Text(AppText.value(
+                            viewModel.activeTab == .favorites ? .popupNoFavorites : .popupNoClipboardItems,
+                            language: viewModel.appLanguage
+                        ))
                             .font(.headline)
-                        Text(AppText.value(.popupNoClipboardSubtitle, language: viewModel.appLanguage))
+                        Text(AppText.value(
+                            viewModel.activeTab == .favorites ? .popupNoFavoritesSubtitle : .popupNoClipboardSubtitle,
+                            language: viewModel.appLanguage
+                        ))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -281,6 +287,10 @@ struct PopupContentView: View {
                                 onShare: { sharedItem in
                                     selectForRowAction(sharedItem)
                                     onShare(sharedItem)
+                                },
+                                onOpen: { openedItem in
+                                    selectForRowAction(openedItem)
+                                    viewModel.openItem(openedItem)
                                 },
                                 onTogglePinned: { toggledItem in
                                     selectForRowAction(toggledItem)

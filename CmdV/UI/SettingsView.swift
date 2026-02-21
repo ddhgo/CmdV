@@ -414,10 +414,17 @@ struct SettingsView: View {
     private func fieldRow<Content: View>(
         label: String,
         infoMessage: String? = nil,
+        infoPlacementLeading: Bool = false,
         @ViewBuilder content: () -> Content
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
             HStack(spacing: 4) {
+                if let infoMessage {
+                    if infoPlacementLeading {
+                        InfoHelpButton(message: infoMessage)
+                    }
+                }
+
                 Text(label)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -429,12 +436,13 @@ struct SettingsView: View {
                             )
                         }
                     )
-                .frame(width: labelColumnWidth, alignment: .leading)
 
-                if let infoMessage {
+                if let infoMessage, !infoPlacementLeading {
                     InfoHelpButton(message: infoMessage)
                 }
             }
+            .frame(width: labelColumnWidth, alignment: .leading)
+            
 
             Spacer(minLength: 0)
             content()

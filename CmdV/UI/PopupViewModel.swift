@@ -1,4 +1,5 @@
 import Combine
+import AppKit
 import Foundation
 
 enum PopupListTab {
@@ -178,6 +179,21 @@ final class PopupViewModel: ObservableObject {
 
     func delete(itemID: Int64) {
         historyStore.delete(itemID: itemID)
+    }
+
+    func openItem(_ item: ClipboardItem) {
+        guard item.type == .file else {
+            return
+        }
+
+        let urls = item.fileURLs
+        guard !urls.isEmpty else {
+            return
+        }
+
+        urls.forEach { url in
+            NSWorkspace.shared.open(url)
+        }
     }
 
     func togglePinned(itemID: Int64) {

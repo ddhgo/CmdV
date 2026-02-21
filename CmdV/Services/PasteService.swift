@@ -18,6 +18,7 @@ protocol AccessibilityPermissionChecking {
 
 final class PasteService {
     private static let filenamesPboardType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
+    private static let utf8PlainTextPboardType = NSPasteboard.PasteboardType("public.utf8-plain-text")
 
     private let permissions: AccessibilityPermissionChecking
     private let sendCommandVShortcutHandler: () -> Bool
@@ -160,12 +161,8 @@ final class PasteService {
             }
 
             let objectWriteSucceeded = pasteboard.writeObjects(fileURLs.map { $0 as NSURL })
-            if !objectWriteSucceeded {
-                return writeFileHistoryCompatibilityPayload(fileURLs: fileURLs, to: pasteboard)
-            }
-
-            _ = writeFileHistoryCompatibilityPayload(fileURLs: fileURLs, to: pasteboard)
-            return true
+            let compatibilityWriteSucceeded = writeFileHistoryCompatibilityPayload(fileURLs: fileURLs, to: pasteboard)
+            return objectWriteSucceeded || compatibilityWriteSucceeded
         }
     }
 
@@ -174,7 +171,11 @@ final class PasteService {
         to pasteboard: NSPasteboard
     ) -> Bool {
         let filePaths = fileURLs.map(\.path)
-        return pasteboard.setPropertyList(filePaths, forType: Self.filenamesPboardType)
+        let didWritePaths = pasteboard.setPropertyList(filePaths, forType: Self.filenamesPboardType)
+        let serializedURLs = fileURLs.map(\.absoluteString).joined(separator: "\n")
+        let didWritePathString = pasteboard.setString(serializedURLs, forType: Self.utf8PlainTextPboardType)
+        let didWriteString = pasteboard.setString(serializedURLs, forType: .string)
+        return didWritePaths || didWritePathString || didWriteString
     }
 
     private func copyImageToPasteboardAsync(

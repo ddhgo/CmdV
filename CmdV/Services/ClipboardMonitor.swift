@@ -195,6 +195,14 @@ final class ClipboardMonitor {
         let utf8Text = item?.string(forType: utf8TextType)
         let utf16Text = item?.string(forType: utf16TextType)
         let rtfData = item?.data(forType: .rtf)
+        let pngData = pasteboardReader.data(forType: .png)
+        let tiffData = pasteboardReader.data(forType: .tiff)
+        let fallbackImageData: Data?
+        if pngData == nil, tiffData == nil {
+            fallbackImageData = pasteboardReader.firstImageTIFFRepresentation()
+        } else {
+            fallbackImageData = nil
+        }
 
         if !fileURLs.isEmpty {
             return PasteboardPayloadSnapshot(
@@ -203,9 +211,22 @@ final class ClipboardMonitor {
                 utf8Text: utf8Text,
                 utf16Text: utf16Text,
                 rtfData: rtfData,
-                pngData: nil,
-                tiffData: nil,
-                fallbackImageData: nil
+                pngData: pngData,
+                tiffData: tiffData,
+                fallbackImageData: fallbackImageData
+            )
+        }
+
+        if pngData != nil || tiffData != nil || fallbackImageData != nil {
+            return PasteboardPayloadSnapshot(
+                fileURLs: [],
+                plainText: nil,
+                utf8Text: nil,
+                utf16Text: nil,
+                rtfData: nil,
+                pngData: pngData,
+                tiffData: tiffData,
+                fallbackImageData: fallbackImageData
             )
         }
 
@@ -222,25 +243,15 @@ final class ClipboardMonitor {
             )
         }
 
-        let pngData = pasteboardReader.data(forType: .png)
-        let tiffData = pasteboardReader.data(forType: .tiff)
-
-        let fallbackImageData: Data?
-        if pngData == nil, tiffData == nil {
-            fallbackImageData = pasteboardReader.firstImageTIFFRepresentation()
-        } else {
-            fallbackImageData = nil
-        }
-
         return PasteboardPayloadSnapshot(
             fileURLs: [],
-            plainText: plainText,
-            utf8Text: utf8Text,
-            utf16Text: utf16Text,
-            rtfData: rtfData,
-            pngData: pngData,
-            tiffData: tiffData,
-            fallbackImageData: fallbackImageData
+            plainText: nil,
+            utf8Text: nil,
+            utf16Text: nil,
+            rtfData: nil,
+            pngData: nil,
+            tiffData: nil,
+            fallbackImageData: nil
         )
     }
 

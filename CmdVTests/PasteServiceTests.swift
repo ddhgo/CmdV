@@ -86,7 +86,7 @@ final class PasteServiceTests: XCTestCase {
         XCTAssertEqual(pasteboardURLs, [firstFileURL, secondFileURL])
     }
 
-    func testCopyToPasteboardFileWritesLegacyFilenamesType() {
+    func testCopyToPasteboardFileWritesCompatibilityTextTypes() {
         let firstFileURL = temporaryDirectory.appendingPathComponent("first.txt", isDirectory: false)
         let secondFileURL = temporaryDirectory.appendingPathComponent("second.txt", isDirectory: false)
         try? "first".write(to: firstFileURL, atomically: true, encoding: .utf8)
@@ -108,6 +108,16 @@ final class PasteServiceTests: XCTestCase {
         } ?? false
 
         XCTAssertTrue(hasLegacyFileListType || hasFileURLType)
+
+        let utf8Text = NSPasteboard.general.string(forType: NSPasteboard.PasteboardType("public.utf8-plain-text"))
+        let stringText = NSPasteboard.general.string(forType: .string)
+
+        XCTAssertNotNil(utf8Text)
+        XCTAssertNotNil(stringText)
+
+        let expectedURLsText = "\(firstFileURL.absoluteString)\n\(secondFileURL.absoluteString)"
+        XCTAssertEqual(utf8Text, expectedURLsText)
+        XCTAssertEqual(stringText, expectedURLsText)
     }
 
     func testCopyToPasteboardFileWithoutPayloadReturnsFalse() {

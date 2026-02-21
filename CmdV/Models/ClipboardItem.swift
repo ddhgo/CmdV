@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 enum ClipboardItemType: String {
@@ -25,6 +26,103 @@ extension ClipboardItem {
         }
 
         return Self.deserializeFileURLs(from: textContent)
+    }
+
+    func displaySubtitle(for language: AppLanguage) -> String? {
+        switch type {
+        case .file:
+            return sourceName() ?? fileFormatSummary(for: language)
+        case .text:
+            return sourceName() ?? AppText.value(.popupTextTypeLabel, language: language)
+        case .image:
+            return sourceName() ?? imageFormatSummary(for: language)
+        }
+    }
+
+    private func sourceName() -> String? {
+        guard let bundleID = sourceBundleID else {
+            return nil
+        }
+
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID),
+           let bundle = Bundle(url: appURL) {
+            if let displayName = bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
+               !displayName.isEmpty {
+                return displayName
+            }
+
+            if let name = bundle.object(forInfoDictionaryKey: "CFBundleName") as? String,
+               !name.isEmpty {
+                return name
+            }
+
+            return appURL.deletingPathExtension().lastPathComponent
+        }
+
+        return bundleID.components(separatedBy: ".").last
+    }
+
+    private func imageFormatSummary(for language: AppLanguage) -> String? {
+        return AppText.value(.popupImageLabel, language: language)
+    }
+
+    func fileFormatSummary(for language: AppLanguage) -> String {
+        let urls = fileURLs
+
+        guard !urls.isEmpty else {
+            return AppText.value(.popupFileLabel, language: language)
+        }
+
+        let formatLabels = urls.map { Self.fileFormatLabel(for: $0, language: language) }
+        var uniqueFormats: [String] = []
+
+        for label in formatLabels where !uniqueFormats.contains(label) {
+            uniqueFormats.append(label)
+        }
+
+        if uniqueFormats.count == 1 {
+            if urls.count > 1 {
+                return "\(uniqueFormats[0]) · \(Self.fileCountText(urls.count, language: language))"
+            }
+
+            return uniqueFormats[0]
+        }
+
+        if uniqueFormats.count == 2 {
+            return uniqueFormats.joined(separator: ", ")
+        }
+
+        return "\(AppText.value(.popupMixedFileTypes, language: language)) (\(Self.fileCountText(urls.count, language: language)))"
+    }
+
+    private static func fileFormatLabel(for url: URL, language: AppLanguage) -> String {
+        var isDirectory = false
+        if let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey]),
+           let value = resourceValues.isDirectory {
+            isDirectory = value
+        }
+
+        if isDirectory {
+            return AppText.value(.popupFolderLabel, language: language)
+        }
+
+        let extensionLower = url.pathExtension
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        guard !extensionLower.isEmpty else {
+            return AppText.value(.popupFileTypeUnknown, language: language)
+        }
+
+        return extensionLower.uppercased()
+    }
+
+    private static func fileCountText(_ count: Int, language: AppLanguage) -> String {
+        switch language {
+        case .english:
+            return "\(count) files"
+        case .korean:
+            return "\(count)개"
+        }
     }
 
     func displayTitle(for language: AppLanguage) -> String {

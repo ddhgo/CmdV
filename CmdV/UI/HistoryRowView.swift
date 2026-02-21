@@ -54,6 +54,7 @@ struct HistoryRowView: View {
     let onHoverChanged: (ClipboardItem, Bool) -> Void
     let onCopy: (ClipboardItem) -> Void
     let onShare: (ClipboardItem) -> Void
+    let onOpen: (ClipboardItem) -> Void
     let onTogglePinned: (ClipboardItem) -> Void
     let onToggleFavorited: (ClipboardItem) -> Void
     let onDelete: (ClipboardItem) -> Void
@@ -87,9 +88,23 @@ struct HistoryRowView: View {
                         .font(.system(size: 13, weight: .semibold))
                 }
 
-                if let sourceBundleID = item.sourceBundleID {
-                    Text(sourceBundleID)
-                        .font(.caption2)
+                if let subtitle = item.displaySubtitle(for: language) {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(subtitle)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .layoutPriority(1)
+
+                        Text(RelativeTime.string(from: item.createdAt))
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .layoutPriority(0)
+                    }
+                } else {
+                    Text(RelativeTime.string(from: item.createdAt))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
@@ -112,10 +127,6 @@ struct HistoryRowView: View {
                     }
                 }
 
-                Text(RelativeTime.string(from: item.createdAt))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
             .padding(.trailing, 2)
         }
@@ -175,6 +186,15 @@ struct HistoryRowView: View {
         }
         .onDisappear {
             onMenuClose()
+        }
+
+        if hasOpenAction {
+            Button(AppText.value(.popupOpen, language: language)) {
+                onOpen(item)
+            }
+            .onDisappear {
+                onMenuClose()
+            }
         }
 
         if hasShareAction {
@@ -252,6 +272,10 @@ struct HistoryRowView: View {
         case .file:
             return !item.fileURLs.isEmpty
         }
+    }
+
+    private var hasOpenAction: Bool {
+        item.type == .file && !item.fileURLs.isEmpty
     }
 
     private var fileIcon: some View {

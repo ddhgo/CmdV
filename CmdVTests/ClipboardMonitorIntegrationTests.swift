@@ -94,6 +94,27 @@ final class ClipboardMonitorIntegrationTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: imagePath))
     }
 
+    func testPollPrefersImageDataWhenPlainTextAlsoExists() throws {
+        pasteboard.plainText = "clipboard text"
+        pasteboard.pngData = try makeSamplePNGData()
+        pasteboard.changeCount = 1
+
+        monitor.pollNow()
+
+        waitUntil("image item should be preferred over plain text") {
+            self.historyStore.items.count == 1 && self.historyStore.items.first?.type == .image
+        }
+
+        XCTAssertEqual(historyStore.items.first?.type, .image)
+        XCTAssertNil(historyStore.items.first?.textContent)
+        guard let imagePath = historyStore.items.first?.imagePath else {
+            XCTFail("Expected image path for image item")
+            return
+        }
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: imagePath))
+    }
+
     private func makeSampleTIFFData() throws -> Data {
         let size = NSSize(width: 4, height: 4)
         let image = NSImage(size: size)
@@ -107,6 +128,25 @@ final class ClipboardMonitorIntegrationTests: XCTestCase {
         }
 
         return data
+    }
+
+    private func makeSamplePNGData() throws -> Data {
+        let size = NSSize(width: 4, height: 4)
+        let image = NSImage(size: size)
+        image.lockFocus()
+        NSColor.systemGreen.setFill()
+        NSBezierPath(rect: NSRect(origin: .zero, size: size)).fill()
+        image.unlockFocus()
+
+        guard
+            let tiffData = image.tiffRepresentation,
+            let imageRep = NSBitmapImageRep(data: tiffData),
+            let pngData = imageRep.representation(using: .png, properties: [:])
+        else {
+            throw NSError(domain: "ClipboardMonitorIntegrationTests", code: 1)
+        }
+
+        return pngData
     }
 
     private func waitUntil(

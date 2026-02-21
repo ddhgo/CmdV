@@ -282,10 +282,19 @@ enum AppTextKey {
     case popupClearSearchA11y
     case popupNoClipboardItems
     case popupNoClipboardSubtitle
+    case popupNoFavorites
+    case popupNoFavoritesSubtitle
     case popupFooterHints
     case popupImageLabel
     case popupFileLabel
+    case popupTextTypeLabel
+    case popupOpen
     case popupFilesLabel
+    case popupFolderLabel
+    case popupMixedFileTypes
+    case popupFileTypeUnknown
+    case popupPhotoTypeLabel
+    case popupVideoTypeLabel
 
     case settingsTitle
     case settingsGeneral
@@ -433,14 +442,32 @@ enum AppText {
             return "No clipboard items"
         case .popupNoClipboardSubtitle:
             return "Copy text, images, or files to start building history."
+        case .popupNoFavorites:
+            return "No favorites yet"
+        case .popupNoFavoritesSubtitle:
+            return "Pin items with the favorite button to show them here."
         case .popupFooterHints:
             return "Up/Down Select   Enter Paste   Cmd+Enter Copy   Cmd+P Pin   Esc Close   Cmd+F Search   Delete Remove"
         case .popupImageLabel:
             return "Image"
+        case .popupTextTypeLabel:
+            return "Text"
         case .popupFileLabel:
             return "File"
+        case .popupOpen:
+            return "Open"
         case .popupFilesLabel:
             return "Files"
+        case .popupFolderLabel:
+            return "Folder"
+        case .popupMixedFileTypes:
+            return "Mixed file types"
+        case .popupFileTypeUnknown:
+            return "Unknown"
+        case .popupPhotoTypeLabel:
+            return "Photo"
+        case .popupVideoTypeLabel:
+            return "Video"
 
         case .settingsTitle:
             return "CmdV Settings"
@@ -608,14 +635,32 @@ enum AppText {
             return "클립보드 항목이 없습니다"
         case .popupNoClipboardSubtitle:
             return "텍스트, 이미지, 파일을 복사하면 기록이 쌓입니다."
+        case .popupNoFavorites:
+            return "즐겨찾기 항목이 없습니다"
+        case .popupNoFavoritesSubtitle:
+            return "항목에서 즐겨찾기 버튼을 누르면 여기에 표시됩니다."
         case .popupFooterHints:
             return "위/아래 선택   Enter 붙여넣기   Cmd+Enter 복사   Cmd+P 고정   Esc 닫기   Cmd+F 검색   Delete 삭제"
         case .popupImageLabel:
             return "이미지"
+        case .popupTextTypeLabel:
+            return "텍스트"
         case .popupFileLabel:
             return "파일"
+        case .popupOpen:
+            return "열기"
         case .popupFilesLabel:
             return "파일"
+        case .popupFolderLabel:
+            return "폴더"
+        case .popupMixedFileTypes:
+            return "혼합 파일 형식"
+        case .popupFileTypeUnknown:
+            return "알 수 없음"
+        case .popupPhotoTypeLabel:
+            return "사진"
+        case .popupVideoTypeLabel:
+            return "동영상"
 
         case .settingsTitle:
             return "CmdV 설정"
