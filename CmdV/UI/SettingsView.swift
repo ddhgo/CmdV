@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct SettingsView: View {
-    static let fixedWindowWidth: CGFloat = 360
+    static let fixedWindowWidth: CGFloat = 340
 
     @ObservedObject var settings: SettingsStore
     @ObservedObject var permissions: PermissionsService
@@ -19,21 +19,25 @@ struct SettingsView: View {
         case about
     }
 
-    @State private var labelColumnWidth: CGFloat = 132
+    @State private var labelColumnWidth: CGFloat = 180
     @State private var selectedTab: SettingsTab = .general
     @State private var contentSize: CGSize = .zero
     @State private var tabBarWidth: CGFloat = 0
     private let fixedWindowWidth = Self.fixedWindowWidth
-    private let generalNumericInputWidth: CGFloat = 162
+    private let generalNumericInputWidth: CGFloat = 88
+    private let generalControlPadding = CGFloat(16)
     private let generalNumericRowSpacing: CGFloat = 2
     private let tabSpacing: CGFloat = 5
     private let tabButtonMinSize: CGFloat = 44
     private let tabButtonMaxSize: CGFloat = 78
+    private let rootContentInset: CGFloat = 10
     private let compactCardHeight: CGFloat = 60
     private let permissionsButtonHeight: CGFloat = 30
     private let hotkeyControlHeight: CGFloat = 34
     private let hotkeyKeyControlMinWidth: CGFloat = 80
     private let generalControlHeight: CGFloat = 22
+    private let cardContentInset: CGFloat = 12
+    private let settingsLabelFont = Font.system(size: 12, weight: .regular)
     private let developerAddressURL = "https://github.com/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
 
@@ -92,7 +96,7 @@ struct SettingsView: View {
 
             selectedTabContent
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, rootContentInset)
         .padding(.top, 14)
         .padding(.bottom, 8)
         .frame(width: fixedWindowWidth)
@@ -104,7 +108,10 @@ struct SettingsView: View {
             settings.refreshLaunchAtLoginStatus()
         }
         .onPreferenceChange(SettingsLabelWidthPreferenceKey.self) { measuredWidth in
-            labelColumnWidth = min(142, max(122, measuredWidth))
+            labelColumnWidth = min(
+                maxLabelColumnWidth,
+                max(120, measuredWidth)
+            )
         }
         .background(
             GeometryReader { proxy in
@@ -199,7 +206,8 @@ struct SettingsView: View {
 
                 generalFieldRow(
                     label: AppText.value(.settingsClipboardPolling, language: language),
-                    infoMessage: AppText.value(.settingsClipboardPollingHint, language: language)
+                    infoMessage: AppText.value(.settingsClipboardPollingHint, language: language),
+                    contentWidth: generalNumericInputWidth
                 ) {
                     HStack(alignment: .center, spacing: generalNumericRowSpacing) {
                         TextField(
@@ -209,7 +217,7 @@ struct SettingsView: View {
                         )
                         .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.trailing)
-                        .frame(width: 56)
+                        .frame(width: 52)
                         .controlSize(.small)
                         .frame(height: generalControlHeight)
 
@@ -299,7 +307,8 @@ struct SettingsView: View {
     private var generalHistoryCapacityRow: some View {
         generalFieldRow(
             label: AppText.value(.settingsHistoryCapacity, language: language),
-            infoMessage: AppText.value(.settingsHistoryCapacityHint, language: language)
+            infoMessage: AppText.value(.settingsHistoryCapacityHint, language: language),
+            contentWidth: generalNumericInputWidth
         ) {
             HStack(alignment: .center, spacing: generalNumericRowSpacing) {
                 TextField(
@@ -309,7 +318,7 @@ struct SettingsView: View {
                 )
                 .textFieldStyle(.roundedBorder)
                 .multilineTextAlignment(.trailing)
-                .frame(width: 56)
+                .frame(width: 52)
                 .controlSize(.small)
                 .frame(height: generalControlHeight)
 
@@ -326,10 +335,19 @@ struct SettingsView: View {
         }
     }
 
+    private var maxLabelColumnWidth: CGFloat {
+        let outerPadding = rootContentInset * 2
+        let cardPadding = cardContentInset * 2
+        let rowSpacing = CGFloat(12)
+        let usableRowWidth = fixedWindowWidth - outerPadding - cardPadding
+        return max(120, usableRowWidth - generalNumericInputWidth - rowSpacing - generalControlPadding)
+    }
+
     private func generalFieldRow<Content: View>(
         label: String,
         infoMessage: String? = nil,
         infoPlacementLeading: Bool = false,
+        contentWidth: CGFloat? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
         fieldRow(
@@ -337,9 +355,14 @@ struct SettingsView: View {
             infoMessage: infoMessage,
             infoPlacementLeading: infoPlacementLeading
         ) {
-            content()
-                .frame(width: generalNumericInputWidth, alignment: .trailing)
-                .frame(height: generalControlHeight)
+            if let contentWidth {
+                content()
+                    .frame(width: contentWidth, alignment: .trailing)
+                    .frame(height: generalControlHeight)
+            } else {
+                content()
+                    .frame(height: generalControlHeight)
+            }
         }
     }
 
@@ -446,7 +469,7 @@ struct SettingsView: View {
 
             content()
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, cardContentInset)
         .padding(.vertical, isCompact ? 8 : 12)
         .frame(
             maxWidth: .infinity,
@@ -480,7 +503,10 @@ struct SettingsView: View {
 
                 Text(label)
                     .foregroundStyle(.secondary)
+                    .font(settingsLabelFont)
                     .lineLimit(1)
+                    .minimumScaleFactor(1)
+                    .truncationMode(.tail)
                     .background(
                         GeometryReader { proxy in
                             Color.clear.preference(
@@ -499,7 +525,6 @@ struct SettingsView: View {
 
             Spacer(minLength: 0)
             content()
-                .fixedSize(horizontal: true, vertical: false)
         }
     }
 

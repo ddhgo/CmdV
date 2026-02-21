@@ -9,7 +9,7 @@ final class SettingsWindowController {
 
     private var window: NSWindow?
     private var lastAppliedContentSize: CGSize?
-    private let minimumWindowSize = CGSize(width: 320, height: 270)
+    private let minimumWindowSize = CGSize(width: 340, height: 270)
     private let maximumWindowSize = CGSize(width: 620, height: 540)
     private let fixedWindowWidth = SettingsView.fixedWindowWidth
 
@@ -59,7 +59,7 @@ final class SettingsWindowController {
         window.styleMask = NSWindow.StyleMask([.titled, .closable, .miniaturizable])
         window.backgroundColor = settingsWindowBackgroundColor
         window.isOpaque = true
-        applyPreferredSize(for: CGSize(width: 360, height: 320), to: window)
+        applyPreferredSize(for: CGSize(width: fixedWindowWidth, height: 320), to: window)
 
         self.window = window
     }
@@ -74,7 +74,7 @@ final class SettingsWindowController {
             return
         }
 
-        let fallbackSize = CGSize(width: 360, height: 320)
+        let fallbackSize = CGSize(width: fixedWindowWidth, height: 320)
         applyPreferredSize(for: fallbackSize, to: window)
     }
 
