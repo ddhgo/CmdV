@@ -344,53 +344,32 @@ struct SettingsView: View {
         settingsCard(
             title: AppText.value(.settingsPrivacy, language: language)
         ) {
-            VStack(alignment: .leading, spacing: 11) {
-                HStack(alignment: .top, spacing: 10) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill((permissions.accessibilityGranted ? Color.green : Color.orange).opacity(0.16))
-                            .frame(width: 30, height: 30)
-
-                        Image(systemName: "hand.raised.fill")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(permissions.accessibilityGranted ? Color.green : Color.orange)
-                    }
-                    .frame(width: 30, height: 30)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        accessibilityStatusChip
-                        Text(privacyPermissionHint)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(nil)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
+                    accessibilityStatusChip
+                    Text(privacyPermissionHint)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                HStack(spacing: 8) {
+                Button(
+                    permissions.accessibilityGranted
+                        ? AppText.value(.settingsOpenPrivacySettings, language: language)
+                        : AppText.value(.settingsRequestPermission, language: language)
+                ) {
                     if permissions.accessibilityGranted {
-                        Button(AppText.value(.settingsPermissionEnabled, language: language)) {}
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                            .frame(height: permissionsButtonHeight)
-                            .disabled(true)
-                    } else {
-                        Button(AppText.value(.settingsRequestPermission, language: language)) {
-                            permissions.requestAccessibilityPermission()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
-                        .frame(height: permissionsButtonHeight)
-                    }
-
-                    Button(AppText.value(.settingsOpenPrivacySettings, language: language)) {
                         permissions.openAccessibilitySettings()
+                    } else {
+                        permissions.requestAccessibilityPermission()
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .frame(height: permissionsButtonHeight)
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .frame(height: permissionsButtonHeight)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
