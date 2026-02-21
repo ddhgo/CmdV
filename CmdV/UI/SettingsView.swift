@@ -25,7 +25,6 @@ struct SettingsView: View {
     @State private var tabBarWidth: CGFloat = 0
     private let fixedWindowWidth = Self.fixedWindowWidth
     private let generalNumericInputWidth: CGFloat = 162
-    private let generalNumericUnitWidth: CGFloat = 34
     private let generalNumericRowSpacing: CGFloat = 2
     private let tabSpacing: CGFloat = 5
     private let tabButtonMinSize: CGFloat = 44
@@ -34,6 +33,7 @@ struct SettingsView: View {
     private let permissionsButtonHeight: CGFloat = 30
     private let hotkeyControlHeight: CGFloat = 34
     private let hotkeyKeyControlMinWidth: CGFloat = 80
+    private let generalControlHeight: CGFloat = 22
     private let developerAddressURL = "https://github.com/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
 
@@ -175,7 +175,7 @@ struct SettingsView: View {
     private var generalSection: some View {
         settingsCard(title: AppText.value(.settingsGeneral, language: language)) {
             VStack(alignment: .leading, spacing: 9) {
-                fieldRow(label: AppText.value(.settingsLanguage, language: language)) {
+                generalFieldRow(label: AppText.value(.settingsLanguage, language: language)) {
                     Picker("", selection: $settings.appLanguage) {
                         ForEach(AppLanguage.allCases) { option in
                             Text(option.displayName)
@@ -183,34 +183,25 @@ struct SettingsView: View {
                         }
                     }
                     .labelsHidden()
-                    .frame(width: 148, alignment: .trailing)
+                    .controlSize(.small)
                 }
 
-                fieldRow(label: AppText.value(.settingsLaunchAtLogin, language: language)) {
+                generalFieldRow(label: AppText.value(.settingsLaunchAtLogin, language: language)) {
                     Toggle("", isOn: launchAtLoginBinding)
                         .labelsHidden()
                         .toggleStyle(.switch)
+                        .controlSize(.small)
                 }
 
-                clearOnSystemRestartRow
+                generalClearOnSystemRestartRow
 
-                historyCapacityRow
+                generalHistoryCapacityRow
 
-                fieldRow(
+                generalFieldRow(
                     label: AppText.value(.settingsClipboardPolling, language: language),
                     infoMessage: AppText.value(.settingsClipboardPollingHint, language: language)
                 ) {
-                HStack(alignment: .center, spacing: generalNumericRowSpacing) {
-                        Stepper(
-                            "",
-                            value: pollingIntervalBinding,
-                            in: SettingsStore.pollingIntervalDisplayRange,
-                            step: SettingsStore.pollingIntervalStep
-                        )
-                        .labelsHidden()
-                        .controlSize(.small)
-                        .frame(height: 22)
-
+                    HStack(alignment: .center, spacing: generalNumericRowSpacing) {
                         TextField(
                             "",
                             value: pollingIntervalBinding,
@@ -220,15 +211,18 @@ struct SettingsView: View {
                         .multilineTextAlignment(.trailing)
                         .frame(width: 56)
                         .controlSize(.small)
-                        .frame(height: 22)
+                        .frame(height: generalControlHeight)
 
-                    Text("s")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: generalNumericUnitWidth, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: false)
+                        Stepper(
+                            "",
+                            value: pollingIntervalBinding,
+                            in: SettingsStore.pollingIntervalDisplayRange,
+                            step: SettingsStore.pollingIntervalStep
+                        )
+                        .labelsHidden()
+                        .controlSize(.small)
+                        .frame(height: generalControlHeight)
                     }
-                    .frame(width: generalNumericInputWidth, alignment: .trailing)
                 }
             }
         }
@@ -266,31 +260,24 @@ struct SettingsView: View {
         }
     }
 
-    private var clearOnSystemRestartRow: some View {
-        fieldRow(
+    private var generalClearOnSystemRestartRow: some View {
+        generalFieldRow(
             label: AppText.value(.settingsClearOnSystemRestart, language: language),
             infoMessage: AppText.value(.settingsClearOnSystemRestartHint, language: language)
         ) {
             Toggle("", isOn: $settings.clearHistoryOnSystemRestart)
                 .labelsHidden()
                 .toggleStyle(.switch)
-                .fixedSize(horizontal: true, vertical: false)
+                .controlSize(.small)
         }
     }
 
-    private var historyCapacityRow: some View {
-        fieldRow(label: AppText.value(.settingsHistoryCapacity, language: language)) {
+    private var generalHistoryCapacityRow: some View {
+        generalFieldRow(
+            label: AppText.value(.settingsHistoryCapacity, language: language),
+            infoMessage: AppText.value(.settingsHistoryCapacityHint, language: language)
+        ) {
             HStack(alignment: .center, spacing: generalNumericRowSpacing) {
-                Stepper(
-                    "",
-                    value: historyCapacityBinding,
-                    in: SettingsStore.maxHistoryItemsUIStepperRange,
-                    step: SettingsStore.maxHistoryItemsStep
-                )
-                .labelsHidden()
-                .controlSize(.small)
-                .frame(height: 22)
-
                 TextField(
                     "",
                     value: historyCapacityBinding,
@@ -300,15 +287,35 @@ struct SettingsView: View {
                 .multilineTextAlignment(.trailing)
                 .frame(width: 56)
                 .controlSize(.small)
-                .frame(height: 22)
+                .frame(height: generalControlHeight)
 
-                Text(AppText.value(.settingsHistoryCapacityUnit, language: language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: generalNumericUnitWidth, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: false)
+                Stepper(
+                    "",
+                    value: historyCapacityBinding,
+                    in: SettingsStore.maxHistoryItemsUIStepperRange,
+                    step: SettingsStore.maxHistoryItemsStep
+                )
+                .labelsHidden()
+                .controlSize(.small)
+                .frame(height: generalControlHeight)
             }
-            .frame(width: generalNumericInputWidth, alignment: .trailing)
+        }
+    }
+
+    private func generalFieldRow<Content: View>(
+        label: String,
+        infoMessage: String? = nil,
+        infoPlacementLeading: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        fieldRow(
+            label: label,
+            infoMessage: infoMessage,
+            infoPlacementLeading: infoPlacementLeading
+        ) {
+            content()
+                .frame(width: generalNumericInputWidth, alignment: .trailing)
+                .frame(height: generalControlHeight)
         }
     }
 

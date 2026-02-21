@@ -316,6 +316,7 @@ enum AppTextKey {
     case settingsHistoryCapacity
     case settingsHistoryCapacityFormat
     case settingsHistoryCapacityUnit
+    case settingsHistoryCapacityHint
     case settingsClipboardPolling
     case settingsClipboardPollingHint
     case settingsGlobalHotkey
@@ -509,10 +510,12 @@ enum AppText {
             return "History capacity %d items"
         case .settingsHistoryCapacityUnit:
             return "items"
+        case .settingsHistoryCapacityHint:
+            return "Number of history entries to keep. Unit: items."
         case .settingsClipboardPolling:
             return "Clipboard polling"
         case .settingsClipboardPollingHint:
-            return "How often CmdV checks for clipboard changes. Lower is faster; higher uses less CPU."
+            return "Polling interval in seconds: how often CmdV checks clipboard changes. Lower is faster; higher uses less CPU."
         case .settingsGlobalHotkey:
             return "Global Hotkey"
         case .settingsGlobalHotkeyHint:
@@ -702,10 +705,12 @@ enum AppText {
             return "기록 용량 %d개"
         case .settingsHistoryCapacityUnit:
             return "개"
+        case .settingsHistoryCapacityHint:
+            return "저장할 기록 항목의 개수를 설정합니다. 단위: 개"
         case .settingsClipboardPolling:
             return "클립보드 폴링"
         case .settingsClipboardPollingHint:
-            return "클립보드 변경을 확인하는 주기입니다. 값이 낮을수록 빠르고, 높을수록 CPU 사용이 줄어듭니다."
+            return "단위: 초. 클립보드 변경을 확인하는 주기입니다. 값이 낮을수록 빠르고, 높을수록 CPU 사용이 줄어듭니다."
         case .settingsGlobalHotkey:
             return "전역 단축키"
         case .settingsGlobalHotkeyHint:
