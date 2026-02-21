@@ -9,7 +9,7 @@ struct SettingsView: View {
     let onClearHistory: () -> Void
     let onClose: () -> Void
 
-    private enum SettingsTab: String, Hashable {
+    private enum SettingsTab: String, CaseIterable, Hashable {
         case general
         case hotkey
         case privacy
@@ -28,27 +28,25 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Picker("", selection: $selectedTab) {
-                Text(AppText.value(.settingsGeneral, language: language)).tag(SettingsTab.general)
-                Text(AppText.value(.settingsGlobalHotkey, language: language)).tag(SettingsTab.hotkey)
-                Text(AppText.value(.settingsPrivacy, language: language)).tag(SettingsTab.privacy)
-                Text(AppText.value(.settingsAbout, language: language)).tag(SettingsTab.about)
+            HStack(spacing: 8) {
+                ForEach(SettingsTab.allCases, id: \.self) { tab in
+                    Button {
+                        selectedTab = tab
+                    } label: {
+                        Label(tabTitle(tab), systemImage: tabIcon(tab))
+                            .labelStyle(.titleAndIcon)
+                            .font(.system(size: 12, weight: selectedTab == tab ? .semibold : .regular))
+                            .foregroundStyle(selectedTab == tab ? Color.accentColor : Color.secondary)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .pickerStyle(.segmented)
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            TabView(selection: $selectedTab) {
-                generalSection
-                    .tag(SettingsTab.general)
-                hotkeySection
-                    .tag(SettingsTab.hotkey)
-                privacySection
-                    .tag(SettingsTab.privacy)
-                aboutSection
-                    .tag(SettingsTab.about)
-            }
-            .tabViewStyle(.automatic)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            selectedTabContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
@@ -78,6 +76,47 @@ struct SettingsView: View {
 
     private var settingsWindowSize: CGSize {
         Self.preferredWindowSize(for: language)
+    }
+
+    private var selectedTabContent: some View {
+        Group {
+            switch selectedTab {
+            case .general:
+                generalSection
+            case .hotkey:
+                hotkeySection
+            case .privacy:
+                privacySection
+            case .about:
+                aboutSection
+            }
+        }
+    }
+
+    private func tabTitle(_ tab: SettingsTab) -> String {
+        switch tab {
+        case .general:
+            return AppText.value(.settingsGeneral, language: language)
+        case .hotkey:
+            return AppText.value(.settingsGlobalHotkey, language: language)
+        case .privacy:
+            return AppText.value(.settingsPrivacy, language: language)
+        case .about:
+            return AppText.value(.settingsAbout, language: language)
+        }
+    }
+
+    private func tabIcon(_ tab: SettingsTab) -> String {
+        switch tab {
+        case .general:
+            return "gearshape"
+        case .hotkey:
+            return "keyboard"
+        case .privacy:
+            return "hand.raised"
+        case .about:
+            return "info.circle"
+        }
     }
 
     private var generalSection: some View {
