@@ -2,6 +2,31 @@ import AppKit
 import Carbon.HIToolbox
 import Foundation
 import ImageIO
+import SwiftUI
+
+private final class MenuActivationSwitchModel: ObservableObject {
+    @Published var isOn: Bool = true
+    var onToggle: ((Bool) -> Void)?
+}
+
+private struct MenuActivationSwitchView: View {
+    @ObservedObject var model: MenuActivationSwitchModel
+
+    var body: some View {
+        Toggle("", isOn: Binding(
+            get: { model.isOn },
+            set: { newValue in
+                model.isOn = newValue
+                model.onToggle?(newValue)
+            }
+        ))
+            .labelsHidden()
+            .toggleStyle(SwitchToggleStyle(tint: .blue))
+            .disabled(false)
+            .controlSize(.small)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+}
 
 private final class MenuActivationHeaderView: NSView {
     private static let preferredSize = NSSize(width: 244, height: 54)
@@ -10,7 +35,10 @@ private final class MenuActivationHeaderView: NSView {
 
     private let titleLabel = NSTextField(labelWithString: "")
     private let subtitleLabel = NSTextField(labelWithString: "")
-    private let activationToggle = NSSwitch()
+    private let switchModel = MenuActivationSwitchModel()
+    private lazy var activationToggle = NSHostingView(
+        rootView: MenuActivationSwitchView(model: switchModel)
+    )
 
     override init(frame frameRect: NSRect) {
         super.init(frame: NSRect(origin: .zero, size: Self.preferredSize))
@@ -29,7 +57,7 @@ private final class MenuActivationHeaderView: NSView {
         titleLabel.stringValue = title
         subtitleLabel.stringValue = subtitle
         subtitleLabel.textColor = .secondaryLabelColor
-        activationToggle.state = isEnabled ? .on : .off
+        switchModel.isOn = isEnabled
         needsLayout = true
         layoutSubtreeIfNeeded()
         displayIfNeeded()
@@ -43,11 +71,6 @@ private final class MenuActivationHeaderView: NSView {
         subtitleLabel.font = .systemFont(ofSize: 12, weight: .regular)
         subtitleLabel.textColor = .secondaryLabelColor
         subtitleLabel.lineBreakMode = .byTruncatingTail
-
-        activationToggle.target = self
-        activationToggle.action = #selector(handleToggleChanged)
-        activationToggle.isEnabled = true
-        activationToggle.controlSize = .small
         activationToggle.translatesAutoresizingMaskIntoConstraints = false
         activationToggle.setContentHuggingPriority(.required, for: .horizontal)
         activationToggle.setContentCompressionResistancePriority(.required, for: .horizontal)
@@ -76,10 +99,10 @@ private final class MenuActivationHeaderView: NSView {
             rowStack.topAnchor.constraint(equalTo: topAnchor, constant: 8),
             rowStack.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -8)
         ])
-    }
 
-    @objc private func handleToggleChanged() {
-        onToggleChanged?(activationToggle.state == .on)
+        switchModel.onToggle = { [weak self] isEnabled in
+            self?.onToggleChanged?(isEnabled)
+        }
     }
 }
 
