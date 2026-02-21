@@ -185,7 +185,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     var onSetRecordingEnabled: ((Bool) -> Void)?
     var onQuit: (() -> Void)?
 
-    private let statusItem = NSStatusBar.system.statusItem(withLength: 36)
+    private let statusItem = NSStatusBar.system.statusItem(withLength: 30)
     private let menu = NSMenu()
     private var menuKeyMonitor: Any?
     private var menuGlobalKeyMonitor: Any?
@@ -207,7 +207,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var appLanguage: AppLanguage = .english
     private var hotkeyConfiguration: HotkeyConfiguration = .default
     private var isRecordingPaused = false
-    private let menuBarIconSize = NSSize(width: 20, height: 20)
+    private let menuBarIconSize = NSSize(width: 19, height: 19)
     private lazy var activeMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 1.0, alpha: 1.0))
     private lazy var pausedMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 0.62, alpha: 1.0))
 
@@ -237,6 +237,12 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
 
         if let button = statusItem.button {
+            button.frame = NSRect(
+                x: 0,
+                y: 0,
+                width: 30,
+                height: NSStatusBar.system.thickness
+            )
             button.image = activeMenuBarIcon
             button.imageScaling = .scaleProportionallyUpOrDown
             button.imagePosition = .imageOnly

@@ -284,6 +284,8 @@ enum AppTextKey {
     case popupNoClipboardSubtitle
     case popupFooterHints
     case popupImageLabel
+    case popupFileLabel
+    case popupFilesLabel
 
     case settingsTitle
     case settingsGeneral
@@ -430,11 +432,15 @@ enum AppText {
         case .popupNoClipboardItems:
             return "No clipboard items"
         case .popupNoClipboardSubtitle:
-            return "Copy text or images to start building history."
+            return "Copy text, images, or files to start building history."
         case .popupFooterHints:
             return "Up/Down Select   Enter Paste   Cmd+Enter Copy   Cmd+P Pin   Esc Close   Cmd+F Search   Delete Remove"
         case .popupImageLabel:
             return "Image"
+        case .popupFileLabel:
+            return "File"
+        case .popupFilesLabel:
+            return "Files"
 
         case .settingsTitle:
             return "CmdV Settings"
@@ -531,7 +537,7 @@ enum AppText {
         case .settingsClearHistoryConfirmTitle:
             return "Clear all clipboard history?"
         case .settingsClearHistoryConfirmMessage:
-            return "This action permanently deletes saved text and images."
+            return "This action permanently deletes saved text, images, and files."
         case .settingsCancel:
             return "Cancel"
         case .settingsDone:
@@ -601,11 +607,15 @@ enum AppText {
         case .popupNoClipboardItems:
             return "클립보드 항목이 없습니다"
         case .popupNoClipboardSubtitle:
-            return "텍스트나 이미지를 복사하면 기록이 쌓입니다."
+            return "텍스트, 이미지, 파일을 복사하면 기록이 쌓입니다."
         case .popupFooterHints:
             return "위/아래 선택   Enter 붙여넣기   Cmd+Enter 복사   Cmd+P 고정   Esc 닫기   Cmd+F 검색   Delete 삭제"
         case .popupImageLabel:
             return "이미지"
+        case .popupFileLabel:
+            return "파일"
+        case .popupFilesLabel:
+            return "파일"
 
         case .settingsTitle:
             return "CmdV 설정"
@@ -702,7 +712,7 @@ enum AppText {
         case .settingsClearHistoryConfirmTitle:
             return "클립보드 기록을 모두 비울까요?"
         case .settingsClearHistoryConfirmMessage:
-            return "저장된 텍스트와 이미지가 영구적으로 삭제됩니다."
+            return "저장된 텍스트, 이미지, 파일이 영구적으로 삭제됩니다."
         case .settingsCancel:
             return "취소"
         case .settingsDone:

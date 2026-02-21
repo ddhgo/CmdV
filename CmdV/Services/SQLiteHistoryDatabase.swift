@@ -191,6 +191,36 @@ final class SQLiteHistoryDatabase {
         return sqlite3_last_insert_rowid(db)
     }
 
+    @discardableResult
+    func insertFile(
+        fileContent: String,
+        hash: String,
+        createdAt: Date,
+        sourceBundleID: String?
+    ) -> Int64 {
+        guard let statement = prepare(
+            """
+            INSERT INTO history_items (type, text_content, image_path, content_hash, created_at, source_bundle_id)
+            VALUES ('file', ?, NULL, ?, ?, ?);
+            """
+        ) else {
+            return -1
+        }
+
+        defer { sqlite3_finalize(statement) }
+
+        sqlite3_bind_text(statement, 1, fileContent, -1, sqliteTransient)
+        sqlite3_bind_text(statement, 2, hash, -1, sqliteTransient)
+        sqlite3_bind_double(statement, 3, createdAt.timeIntervalSince1970)
+        bindOptionalString(sourceBundleID, to: 4, in: statement)
+
+        guard sqlite3_step(statement) == SQLITE_DONE else {
+            return -1
+        }
+
+        return sqlite3_last_insert_rowid(db)
+    }
+
     func deleteItem(id: Int64) -> String? {
         let removedImagePath = imagePathForItem(id: id)
 

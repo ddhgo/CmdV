@@ -64,6 +64,8 @@ struct HistoryRowView: View {
                 if let imagePath = item.imagePath {
                     ThumbnailImageView(path: imagePath)
                 }
+            } else if item.type == .file {
+                fileIcon
             }
 
             VStack(alignment: .leading, spacing: 6) {
@@ -76,6 +78,12 @@ struct HistoryRowView: View {
 
                 case .image:
                     Text(AppText.value(.popupImageLabel, language: language))
+                        .font(.system(size: 13, weight: .semibold))
+
+                case .file:
+                    Text(item.displayTitle(for: language))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                         .font(.system(size: 13, weight: .semibold))
                 }
 
@@ -241,6 +249,28 @@ struct HistoryRowView: View {
             return !(item.textContent?.isEmpty ?? true)
         case .image:
             return item.imagePath != nil
+        case .file:
+            return !item.fileURLs.isEmpty
+        }
+    }
+
+    private var fileIcon: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(
+                    Color(
+                        nsColor: NSColor(name: nil) { appearance in
+                            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                                return NSColor(srgbRed: 0.30, green: 0.4, blue: 0.58, alpha: 0.9)
+                            }
+                            return NSColor(srgbRed: 0.73, green: 0.79, blue: 0.9, alpha: 1)
+                        }
+                    )
+                )
+                .frame(width: 36, height: 36)
+            Image(systemName: "doc.fill")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.white)
         }
     }
 

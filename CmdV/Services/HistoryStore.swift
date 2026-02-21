@@ -132,6 +132,39 @@ final class HistoryStore: ObservableObject {
         }
     }
 
+    func addFileURLsIfNeeded(_ fileURLs: [URL], sourceBundleID: String?) {
+        let normalizedURLs = Self.normalizedFileURLs(fileURLs)
+        guard
+            let textContent = ClipboardItem.serializeFileURLs(normalizedURLs),
+            !normalizedURLs.isEmpty
+        else {
+            return
+        }
+
+        let capacity = currentCapacitySnapshot()
+        let hash = Self.hashData(Data(textContent.utf8))
+
+        queue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            if self.database.latestHash() == hash {
+                return
+            }
+
+            _ = self.database.insertFile(
+                fileContent: textContent,
+                hash: hash,
+                createdAt: Date(),
+                sourceBundleID: sourceBundleID
+            )
+
+            self.cleanupOverflow(capacity: capacity)
+            self.publishLatestItems(limit: capacity)
+        }
+    }
+
     func delete(itemID: Int64) {
         let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
@@ -302,6 +335,30 @@ final class HistoryStore: ObservableObject {
         )
 
         return collapsedWhitespace.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func normalizedFileURLs(_ fileURLs: [URL]) -> [URL] {
+        var seen: Set<String> = []
+        var normalizedURLs: [URL] = []
+        let fileManager = FileManager.default
+
+        for url in fileURLs {
+            guard url.isFileURL else {
+                continue
+            }
+
+            let standardized = url.standardizedFileURL
+            let path = standardized.path
+            guard !path.isEmpty, fileManager.fileExists(atPath: path) else {
+                continue
+            }
+
+            if seen.insert(path).inserted {
+                normalizedURLs.append(standardized)
+            }
+        }
+
+        return normalizedURLs
     }
 
     private static func hashData(_ data: Data) -> String {

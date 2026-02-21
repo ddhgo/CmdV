@@ -96,6 +96,12 @@ final class PopupViewModel: ObservableObject {
             case .image:
                 return AppText.imageSearchTokens(language: appLanguage)
                     .contains(where: { $0.localizedCaseInsensitiveContains(query) })
+            case .file:
+                return item.fileURLs.contains { url in
+                    let fileName = url.lastPathComponent
+                    return fileName.localizedCaseInsensitiveContains(query)
+                        || url.path.localizedCaseInsensitiveContains(query)
+                }
             }
         }
     }

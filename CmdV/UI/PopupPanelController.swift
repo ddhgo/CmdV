@@ -273,6 +273,8 @@ final class PopupPanelController: NSObject, NSWindowDelegate {
                 return []
             }
             return [URL(fileURLWithPath: imagePath)]
+        case .file:
+            return item.fileURLs
         }
     }
 

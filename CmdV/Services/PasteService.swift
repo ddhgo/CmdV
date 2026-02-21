@@ -147,6 +147,15 @@ final class PasteService {
 
             pasteboard.clearContents()
             return writeImagePayloadToPasteboard(payload, to: pasteboard)
+
+        case .file:
+            pasteboard.clearContents()
+
+            guard !item.fileURLs.isEmpty else {
+                return false
+            }
+
+            return pasteboard.writeObjects(item.fileURLs.map { $0 as NSURL })
         }
     }
 

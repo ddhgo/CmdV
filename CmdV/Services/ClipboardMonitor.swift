@@ -14,6 +14,7 @@ protocol PasteboardReading {
     var firstItem: PasteboardItemReading? { get }
     func string(forType type: NSPasteboard.PasteboardType) -> String?
     func data(forType type: NSPasteboard.PasteboardType) -> Data?
+    func fileURLs() -> [URL]
     func firstImageTIFFRepresentation() -> Data?
 }
 
@@ -56,6 +57,18 @@ private final class SystemPasteboardReader: PasteboardReading {
         pasteboard.data(forType: type)
     }
 
+    func fileURLs() -> [URL] {
+        guard
+            let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [
+                .urlReadingFileURLsOnly: true
+            ]) as? [URL]
+        else {
+            return []
+        }
+
+        return urls
+    }
+
     func firstImageTIFFRepresentation() -> Data? {
         guard
             let images = pasteboard.readObjects(forClasses: [NSImage.self], options: nil),
@@ -85,6 +98,7 @@ final class ClipboardMonitor {
     private var cancellables: Set<AnyCancellable> = []
 
     private struct PasteboardPayloadSnapshot {
+        let fileURLs: [URL]
         let plainText: String?
         let utf8Text: String?
         let utf16Text: String?
@@ -176,13 +190,28 @@ final class ClipboardMonitor {
 
     private func capturePayloadSnapshot() -> PasteboardPayloadSnapshot {
         let item = pasteboardReader.firstItem
+        let fileURLs = pasteboardReader.fileURLs()
         let plainText = pasteboardReader.string(forType: .string)
         let utf8Text = item?.string(forType: utf8TextType)
         let utf16Text = item?.string(forType: utf16TextType)
         let rtfData = item?.data(forType: .rtf)
 
+        if !fileURLs.isEmpty {
+            return PasteboardPayloadSnapshot(
+                fileURLs: fileURLs,
+                plainText: plainText,
+                utf8Text: utf8Text,
+                utf16Text: utf16Text,
+                rtfData: rtfData,
+                pngData: nil,
+                tiffData: nil,
+                fallbackImageData: nil
+            )
+        }
+
         if [plainText, utf8Text, utf16Text].contains(where: { !($0?.isEmpty ?? true) }) {
             return PasteboardPayloadSnapshot(
+                fileURLs: [],
                 plainText: plainText,
                 utf8Text: utf8Text,
                 utf16Text: utf16Text,
@@ -204,6 +233,7 @@ final class ClipboardMonitor {
         }
 
         return PasteboardPayloadSnapshot(
+            fileURLs: [],
             plainText: plainText,
             utf8Text: utf8Text,
             utf16Text: utf16Text,
@@ -215,6 +245,11 @@ final class ClipboardMonitor {
     }
 
     private func processPayload(_ payload: PasteboardPayloadSnapshot, sourceBundleID: String?) {
+        if !payload.fileURLs.isEmpty {
+            historyStore.addFileURLsIfNeeded(payload.fileURLs, sourceBundleID: sourceBundleID)
+            return
+        }
+
         if let text = extractPlainText(from: payload), !text.isEmpty {
             historyStore.addTextIfNeeded(text, sourceBundleID: sourceBundleID)
             return
