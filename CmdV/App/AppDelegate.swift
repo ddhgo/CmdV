@@ -275,12 +275,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let currentFrontmost = NSWorkspace.shared.frontmostApplication
 
         if let currentFrontmost,
+           !currentFrontmost.isTerminated,
            currentFrontmost.processIdentifier != selfPID
         {
             previousActiveApplication = currentFrontmost
             lastNonSelfActiveApplication = currentFrontmost
             previousFocusedElement = focusedElement(for: currentFrontmost)
             previousFocusedWindow = focusedWindow(for: currentFrontmost)
+            return
+        }
+
+        guard let lastNonSelfActiveApplication,
+              !lastNonSelfActiveApplication.isTerminated
+        else {
+            previousActiveApplication = nil
+            previousFocusedElement = nil
+            previousFocusedWindow = nil
             return
         }
 
@@ -291,6 +301,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func restorePreviousActiveApplication() {
         guard let previousActiveApplication else {
+            previousFocusedElement = nil
+            previousFocusedWindow = nil
+            return
+        }
+
+        guard !previousActiveApplication.isTerminated else {
+            self.previousActiveApplication = nil
             previousFocusedElement = nil
             previousFocusedWindow = nil
             return
@@ -351,6 +368,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard
                 let self,
                 let activatedApplication = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                !activatedApplication.isTerminated,
                 activatedApplication.processIdentifier != ProcessInfo.processInfo.processIdentifier
             else {
                 return
@@ -360,6 +378,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         if let currentFrontmost = NSWorkspace.shared.frontmostApplication,
+           !currentFrontmost.isTerminated,
            currentFrontmost.processIdentifier != ProcessInfo.processInfo.processIdentifier
         {
             lastNonSelfActiveApplication = currentFrontmost
@@ -426,7 +445,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
         }
 
-        return value as! AXUIElement
+        return unsafeBitCast(value, to: AXUIElement.self)
     }
 
     private func stopTrackingLastActiveApplication() {
