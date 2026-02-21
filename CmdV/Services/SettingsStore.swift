@@ -10,6 +10,8 @@ enum LaunchAtLoginFeedback: Equatable {
 }
 
 final class SettingsStore: ObservableObject {
+    private static let supportedHotkeyModifiers: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
+    private static let hotkeyModifierOrder: [NSEvent.ModifierFlags] = [.command, .option, .control, .shift]
     static let maxHistoryItemsRange: ClosedRange<Int> = 20...1000
     static let maxHistoryItemsUIStepperRange: ClosedRange<Int> = 50...1000
     static let maxHistoryItemsStep = 10
@@ -17,6 +19,7 @@ final class SettingsStore: ObservableObject {
     static let pollingIntervalClampRange: ClosedRange<Double> = 0.2...2.0
     static let pollingIntervalDisplayRange: ClosedRange<Double> = 0.2...1.5
     static let pollingIntervalStep = 0.1
+    private static let maxHotkeyModifiers = 2
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.cmdv.app", category: "SettingsStore")
     private let persistenceQueue = DispatchQueue(
@@ -37,8 +40,6 @@ final class SettingsStore: ObservableObject {
     }
 
     private let defaults: UserDefaults
-    private let supportedHotkeyModifiers: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
-
     @Published var maxHistoryItems: Int {
         didSet {
             let clamped = Self.clamp(maxHistoryItems, to: Self.maxHistoryItemsRange)
@@ -99,10 +100,6 @@ final class SettingsStore: ObservableObject {
 
     @Published var hotkey: HotkeyConfiguration {
         didSet {
-            if hotkey.modifiers.intersection(supportedHotkeyModifiers).isEmpty {
-                hotkey.modifiers = [.option]
-            }
-
             defaults.set(Int(hotkey.keyCode), forKey: Keys.hotkeyKeyCode)
             defaults.set(Int(hotkey.modifiers.rawValue), forKey: Keys.hotkeyModifiersRaw)
         }
@@ -154,7 +151,7 @@ final class SettingsStore: ObservableObject {
             modifiers = HotkeyConfiguration.default.modifiers
         }
 
-        let sanitizedModifiers = modifiers.intersection(supportedHotkeyModifiers)
+        let sanitizedModifiers = Self.sanitizeHotkeyModifiers(modifiers)
         hotkey = HotkeyConfiguration(
             keyCode: keyCode,
             modifiers: sanitizedModifiers.isEmpty ? [.option] : sanitizedModifiers
@@ -197,22 +194,34 @@ final class SettingsStore: ObservableObject {
     }
 
     func setHotkeyKeyCode(_ keyCode: UInt32) {
-        hotkey = HotkeyConfiguration(keyCode: keyCode, modifiers: hotkey.modifiers)
+        hotkey = HotkeyConfiguration(
+            keyCode: keyCode,
+            modifiers: Self.sanitizeHotkeyModifiers(hotkey.modifiers.intersection(Self.supportedHotkeyModifiers))
+        )
     }
 
     func setHotkeyModifier(_ modifier: NSEvent.ModifierFlags, enabled: Bool) {
         var modifiers = hotkey.modifiers
 
         if enabled {
+            if !modifiers.contains(modifier)
+                && Self.hotkeyModifierCount(modifiers) >= Self.maxHotkeyModifiers {
+                return
+            }
             modifiers.insert(modifier)
         } else {
             modifiers.remove(modifier)
         }
 
-        let validModifiers = modifiers.intersection(supportedHotkeyModifiers)
+        var validModifiers = Self.sanitizeHotkeyModifiers(
+            modifiers.intersection(Self.supportedHotkeyModifiers)
+        )
+        if validModifiers.isEmpty {
+            validModifiers = [.option]
+        }
         hotkey = HotkeyConfiguration(
             keyCode: hotkey.keyCode,
-            modifiers: validModifiers.isEmpty ? [.option] : validModifiers
+            modifiers: validModifiers
         )
     }
 
@@ -231,6 +240,32 @@ final class SettingsStore: ObservableObject {
 
     private static func clamp<T: Comparable>(_ value: T, to range: ClosedRange<T>) -> T {
         min(range.upperBound, max(range.lowerBound, value))
+    }
+
+    private static func sanitizeHotkeyModifiers(
+        _ modifiers: NSEvent.ModifierFlags
+    ) -> NSEvent.ModifierFlags {
+        let intersected = modifiers.intersection(Self.supportedHotkeyModifiers)
+        var trimmed = NSEvent.ModifierFlags()
+        var remaining = maxHotkeyModifiers
+
+        for modifier in hotkeyModifierOrder {
+            guard remaining > 0 else {
+                break
+            }
+            if intersected.contains(modifier) {
+                trimmed.insert(modifier)
+                remaining -= 1
+            }
+        }
+
+        return trimmed
+    }
+
+    private static func hotkeyModifierCount(_ modifiers: NSEvent.ModifierFlags) -> Int {
+        hotkeyModifierOrder.reduce(0) { count, modifier in
+            count + (modifiers.contains(modifier) ? 1 : 0)
+        }
     }
 }
 

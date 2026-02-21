@@ -322,16 +322,21 @@ struct SettingsView: View {
     private var hotkeySection: some View {
         settingsCard(title: AppText.value(.settingsGlobalHotkey, language: language)) {
             VStack(alignment: .leading, spacing: 10) {
-                Text(AppText.value(.settingsGlobalHotkeyHint, language: language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(nil)
-                    .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                HStack(alignment: .top, spacing: 8) {
+                    Text(AppText.value(.settingsGlobalHotkeyHint, language: language))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 8) {
-                    modifierMenu
-                    hotkeyKeyMenu
+                    Spacer(minLength: 0)
+
+                    HStack(spacing: 8) {
+                        modifierMenu
+                        hotkeyKeyMenu
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
 
                 if runtimeState.hotkeyRegistrationFailed {
@@ -353,30 +358,38 @@ struct SettingsView: View {
         ) {
             VStack(alignment: .leading, spacing: 8) {
                 VStack(alignment: .leading, spacing: 6) {
-                    accessibilityStatusChip
+                    HStack {
+                        Spacer(minLength: 0)
+                        accessibilityStatusChip
+                        Spacer(minLength: 0)
+                    }
                     Text(privacyPermissionHint)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(nil)
-                        .multilineTextAlignment(.leading)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Button(
-                    permissions.accessibilityGranted
-                        ? AppText.value(.settingsOpenPrivacySettings, language: language)
-                        : AppText.value(.settingsRequestPermission, language: language)
-                ) {
-                    if permissions.accessibilityGranted {
-                        permissions.openAccessibilitySettings()
-                    } else {
-                        permissions.requestAccessibilityPermission()
+                HStack {
+                    Spacer(minLength: 0)
+                    Button(
+                        permissions.accessibilityGranted
+                            ? AppText.value(.settingsOpenPrivacySettings, language: language)
+                            : AppText.value(.settingsRequestPermission, language: language)
+                    ) {
+                        if permissions.accessibilityGranted {
+                            permissions.openAccessibilitySettings()
+                        } else {
+                            permissions.requestAccessibilityPermission()
+                        }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .frame(height: permissionsButtonHeight)
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .frame(height: permissionsButtonHeight)
-                .frame(maxWidth: .infinity, alignment: .center)
             }
         }
     }
@@ -395,8 +408,14 @@ struct SettingsView: View {
         let isCompact = fixedHeight != nil
 
         return VStack(alignment: .leading, spacing: isCompact ? 6 : 10) {
-            Text(title)
-                .font(.headline)
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Text(title)
+                    .font(.headline)
+                    .multilineTextAlignment(.center)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity)
 
             content()
         }
@@ -584,28 +603,33 @@ struct SettingsView: View {
     private func modifierMenuItem(modifier: NSEvent.ModifierFlags) -> some View {
         let symbol = modifierSymbolName(modifier)
         let isEnabled = settings.isHotkeyModifierEnabled(modifier)
+        let selectedModifierCount = [NSEvent.ModifierFlags.command, .option, .control, .shift].reduce(0) { count, flag in
+            count + (settings.isHotkeyModifierEnabled(flag) ? 1 : 0)
+        }
+        let canSelect = isEnabled || selectedModifierCount < 2
 
         Button {
-            settings.setHotkeyModifier(modifier, enabled: !isEnabled)
+            if canSelect {
+                settings.setHotkeyModifier(modifier, enabled: !isEnabled)
+            }
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(.primary)
                     .frame(width: 20, alignment: .center)
+
+                Spacer(minLength: 0)
+
                 if isEnabled {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemName: "checkmark")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(Color.accentColor)
-                        .accessibilityHidden(true)
-                } else {
-                    Image(systemName: "circle")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Color.secondary.opacity(0.5))
                         .accessibilityHidden(true)
                 }
             }
         }
+        .disabled(!canSelect)
     }
 
     private var hotkeyKeyMenu: some View {
