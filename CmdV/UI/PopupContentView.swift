@@ -358,9 +358,9 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.16, green: 0.17, blue: 0.19, alpha: 0.9)
+                    return NSColor(srgbRed: 0.16, green: 0.17, blue: 0.19, alpha: 0.85)
                 }
-                return NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 0.93)
+                return NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 0.9)
             }
         )
     }
@@ -369,9 +369,9 @@ struct PopupContentView: View {
         Color(
             nsColor: NSColor(name: nil) { appearance in
                 if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.24, alpha: 0.88)
+                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.24, alpha: 0.8)
                 }
-                return NSColor(srgbRed: 0.97, green: 0.98, blue: 0.99, alpha: 1)
+                return NSColor(srgbRed: 0.97, green: 0.98, blue: 0.99, alpha: 0.92)
             }
         )
     }

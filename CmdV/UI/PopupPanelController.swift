@@ -279,9 +279,9 @@ final class PopupPanelController: NSObject, NSWindowDelegate {
     private var popupPanelBackgroundColor: NSColor {
         NSColor(name: nil) { appearance in
             if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                return NSColor(srgbRed: 0.17, green: 0.18, blue: 0.2, alpha: 0.9)
+                return NSColor(srgbRed: 0.17, green: 0.18, blue: 0.2, alpha: 0.84)
             }
-            return NSColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: 0.94)
+            return NSColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: 0.9)
         }
     }
 }
