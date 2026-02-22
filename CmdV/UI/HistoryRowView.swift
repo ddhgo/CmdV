@@ -152,8 +152,8 @@ struct HistoryRowView: View {
         }
         .overlay(alignment: .bottomTrailing) {
             menuButton
-                .padding(.trailing, 4)
-                .padding(.bottom, 4)
+                .padding(.trailing, 7)
+                .padding(.bottom, 7)
         }
         .contextMenu {
             rowMenuItems
@@ -164,7 +164,7 @@ struct HistoryRowView: View {
         Menu {
             rowMenuItems
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: "ellipsis")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .frame(width: 16, height: 16, alignment: .center)
