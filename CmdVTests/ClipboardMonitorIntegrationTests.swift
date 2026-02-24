@@ -76,6 +76,19 @@ final class ClipboardMonitorIntegrationTests: XCTestCase {
         XCTAssertEqual(historyStore.items.first?.textContent, "Captured text")
     }
 
+    func testPollCapturesVeryLongPlainTextClipboardItemFromDataPayload() {
+        pasteboard.utf8TextData = String(repeating: "a", count: 500_000).data(using: .utf8)
+        pasteboard.changeCount = 1
+
+        monitor.pollNow()
+
+        waitUntil("long text item captured") {
+            self.historyStore.items.count == 1 && self.historyStore.items.first?.type == .text
+        }
+
+        XCTAssertEqual(historyStore.items.first?.textContent?.count, 500_000)
+    }
+
     func testPollCapturesTIFFImageAndConvertsToPNG() throws {
         pasteboard.tiffData = try makeSampleTIFFData()
         pasteboard.changeCount = 1
@@ -172,6 +185,8 @@ private final class FakePasteboardReader: PasteboardReading {
     var plainText: String?
     var utf8Text: String?
     var utf16Text: String?
+    var utf8TextData: Data?
+    var utf16TextData: Data?
     var capturedFileURLs: [URL] = []
     var rtfData: Data?
     var pngData: Data?
@@ -179,13 +194,15 @@ private final class FakePasteboardReader: PasteboardReading {
     var fallbackImageTIFFData: Data?
 
     var firstItem: PasteboardItemReading? {
-        if utf8Text == nil, utf16Text == nil, rtfData == nil {
+        if utf8Text == nil, utf16Text == nil, utf8TextData == nil, utf16TextData == nil, rtfData == nil {
             return nil
         }
 
         return FakePasteboardItemReader(
             utf8Text: utf8Text,
             utf16Text: utf16Text,
+            utf8TextData: utf8TextData,
+            utf16TextData: utf16TextData,
             rtfData: rtfData
         )
     }
@@ -201,6 +218,10 @@ private final class FakePasteboardReader: PasteboardReading {
 
     func data(forType type: NSPasteboard.PasteboardType) -> Data? {
         switch type {
+        case NSPasteboard.PasteboardType(rawValue: "public.utf8-plain-text"):
+            return utf8TextData
+        case NSPasteboard.PasteboardType(rawValue: "public.utf16-plain-text"):
+            return utf16TextData
         case .png:
             return pngData
         case .tiff:
@@ -222,6 +243,8 @@ private final class FakePasteboardReader: PasteboardReading {
 private struct FakePasteboardItemReader: PasteboardItemReading {
     let utf8Text: String?
     let utf16Text: String?
+    let utf8TextData: Data?
+    let utf16TextData: Data?
     let rtfData: Data?
 
     func string(forType type: NSPasteboard.PasteboardType) -> String? {
@@ -239,6 +262,14 @@ private struct FakePasteboardItemReader: PasteboardItemReading {
     func data(forType type: NSPasteboard.PasteboardType) -> Data? {
         if type == .rtf {
             return rtfData
+        }
+
+        if type.rawValue == "public.utf8-plain-text" {
+            return utf8TextData
+        }
+
+        if type.rawValue == "public.utf16-plain-text" {
+            return utf16TextData
         }
 
         return nil

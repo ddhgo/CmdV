@@ -145,6 +145,9 @@ struct HistoryRowView: View {
                 onSecondaryClick: {
                     onMenuOpen(item)
                 },
+                onMenuClose: {
+                    onMenuClose()
+                },
                 onHoverChanged: { isHovering in
                     onHoverChanged(item, isHovering)
                 }
@@ -315,23 +318,27 @@ struct HistoryRowView: View {
 
 private struct SecondaryClickCaptureView: NSViewRepresentable {
     let onSecondaryClick: () -> Void
+    let onMenuClose: () -> Void
     let onHoverChanged: (Bool) -> Void
 
     func makeNSView(context: Context) -> SecondaryClickCaptureNSView {
         let view = SecondaryClickCaptureNSView()
         view.onSecondaryClick = onSecondaryClick
+        view.onMenuClose = onMenuClose
         view.onHoverChanged = onHoverChanged
         return view
     }
 
     func updateNSView(_ nsView: SecondaryClickCaptureNSView, context: Context) {
         nsView.onSecondaryClick = onSecondaryClick
+        nsView.onMenuClose = onMenuClose
         nsView.onHoverChanged = onHoverChanged
     }
 }
 
 private final class SecondaryClickCaptureNSView: NSView {
     var onSecondaryClick: (() -> Void)?
+    var onMenuClose: (() -> Void)?
     var onHoverChanged: ((Bool) -> Void)?
     private var trackingArea: NSTrackingArea?
     private var isPointerInside = false
@@ -356,6 +363,7 @@ private final class SecondaryClickCaptureNSView: NSView {
             object: nil,
             queue: .main
         ) { [weak self] _ in
+            self?.onMenuClose?()
             self?.refreshHoverStateFromPointer()
         }
     }
@@ -387,8 +395,14 @@ private final class SecondaryClickCaptureNSView: NSView {
     override func mouseDown(with event: NSEvent) {
         if event.modifierFlags.contains(.control) {
             onSecondaryClick?()
+            return
         }
-        super.mouseDown(with: event)
+
+        if let nextResponder {
+            nextResponder.mouseDown(with: event)
+        } else {
+            super.mouseDown(with: event)
+        }
     }
 
     override func mouseEntered(with event: NSEvent) {

@@ -302,15 +302,21 @@ struct PopupContentView: View {
                                 },
                                 onDelete: { deletedItem in
                                     selectForRowAction(deletedItem)
+                                    if hoveredItemID == deletedItem.id {
+                                        hoveredItemID = nil
+                                    }
+                                    contextMenuItemID = nil
+                                    contextMenuActive = false
+                                    allowSelectedFallbackHighlight = true
                                     viewModel.delete(itemID: deletedItem.id)
                                 }
                             )
                                 .contentShape(Rectangle())
-                                .onTapGesture {
-                                    viewModel.selectedItemID = item.id
-                                    contextMenuItemID = nil
-                                    hoveredItemID = item.id
-                                    allowSelectedFallbackHighlight = true
+                            .onTapGesture {
+                                viewModel.selectedItemID = item.id
+                                contextMenuItemID = nil
+                                hoveredItemID = item.id
+                                allowSelectedFallbackHighlight = true
                                     onConfirm(item)
                                 }
                                 .id(item.id)
@@ -345,15 +351,29 @@ struct PopupContentView: View {
     }
 
     private func isRowSelected(itemID: Int64) -> Bool {
+        let visibleItemIDs = viewModel.filteredItems.map(\.id)
+
         if contextMenuActive, let contextMenuItemID {
+            guard visibleItemIDs.contains(contextMenuItemID) else {
+                return false
+            }
+
             return contextMenuItemID == itemID
         }
 
         if let hoveredItemID {
+            guard visibleItemIDs.contains(hoveredItemID) else {
+                return false
+            }
+
             return hoveredItemID == itemID
         }
 
         if let contextMenuItemID {
+            guard visibleItemIDs.contains(contextMenuItemID) else {
+                return false
+            }
+
             return contextMenuItemID == itemID
         }
 

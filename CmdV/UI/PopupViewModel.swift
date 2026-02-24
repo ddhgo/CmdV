@@ -31,6 +31,8 @@ final class PopupViewModel: ObservableObject {
     private let settings: SettingsStore
     private let permissions: PermissionsService
     private var cancellables: Set<AnyCancellable> = []
+    private var pendingSelectionAfterDeleteIndex: Int?
+    private var pendingSelectionAfterDeleteID: Int64?
 
     init(
         historyStore: HistoryStore,
@@ -178,7 +180,43 @@ final class PopupViewModel: ObservableObject {
     }
 
     func delete(itemID: Int64) {
+        let itemsBeforeDelete = filteredItems
+        let fallbackSelectionIndex = fallbackSelectionIndex(afterDeleting: itemID, from: itemsBeforeDelete)
+        pendingSelectionAfterDeleteIndex = fallbackSelectionIndex
+
+        var immediateSelectionID: Int64?
+        if let fallbackSelectionIndex,
+           itemsBeforeDelete.indices.contains(fallbackSelectionIndex) {
+            pendingSelectionAfterDeleteID = itemsBeforeDelete[fallbackSelectionIndex].id
+            immediateSelectionID = pendingSelectionAfterDeleteID
+        } else if itemsBeforeDelete.count > 1 {
+            immediateSelectionID = itemsBeforeDelete.first(where: { $0.id != itemID })?.id
+            pendingSelectionAfterDeleteID = immediateSelectionID
+        } else {
+            pendingSelectionAfterDeleteID = nil
+        }
+
+        selectedItemID = immediateSelectionID
+
         historyStore.delete(itemID: itemID)
+        markSelectionExplicit()
+    }
+
+    private func fallbackSelectionIndex(afterDeleting itemID: Int64, from items: [ClipboardItem]) -> Int? {
+        guard let deletedIndex = items.firstIndex(where: { $0.id == itemID }) else {
+            return nil
+        }
+
+        let remainingCount = items.count - 1
+        guard remainingCount > 0 else {
+            return nil
+        }
+
+        if deletedIndex < items.count - 1 {
+            return deletedIndex
+        }
+
+        return deletedIndex - 1
     }
 
     func openItem(_ item: ClipboardItem) {
@@ -262,8 +300,32 @@ final class PopupViewModel: ObservableObject {
 
         guard !visibleItems.isEmpty else {
             selectedItemID = nil
+            pendingSelectionAfterDeleteID = nil
+            pendingSelectionAfterDeleteIndex = nil
             return
         }
+
+        let hasPendingDeleteSelection = pendingSelectionAfterDeleteID != nil || pendingSelectionAfterDeleteIndex != nil
+        if hasPendingDeleteSelection {
+            if let pendingSelectionAfterDeleteID,
+               visibleItems.contains(where: { $0.id == pendingSelectionAfterDeleteID }) {
+                selectedItemID = pendingSelectionAfterDeleteID
+            } else if let pendingSelectionAfterDeleteIndex {
+                let boundedIndex = min(
+                    max(pendingSelectionAfterDeleteIndex, 0),
+                    visibleItems.count - 1
+                )
+                selectedItemID = visibleItems[boundedIndex].id
+            } else {
+                selectedItemID = visibleItems.first?.id
+            }
+
+            pendingSelectionAfterDeleteIndex = nil
+            pendingSelectionAfterDeleteID = nil
+            return
+        }
+
+        pendingSelectionAfterDeleteIndex = nil
 
         if forceSelectFirst {
             selectedItemID = visibleItems.first?.id

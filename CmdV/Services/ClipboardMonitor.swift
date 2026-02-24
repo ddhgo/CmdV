@@ -191,9 +191,19 @@ final class ClipboardMonitor {
     private func capturePayloadSnapshot() -> PasteboardPayloadSnapshot {
         let item = pasteboardReader.firstItem
         let fileURLs = pasteboardReader.fileURLs()
-        let plainText = pasteboardReader.string(forType: .string)
+        let plainText =
+            pasteboardReader.string(forType: .string)
+            ?? decodeClipboardText(from: pasteboardReader.data(forType: .string))
+
+        let utf8TextData = item?.data(forType: utf8TextType)
+        let utf16TextData = item?.data(forType: utf16TextType)
+
         let utf8Text = item?.string(forType: utf8TextType)
+            ?? decodeClipboardText(from: utf8TextData)
+
         let utf16Text = item?.string(forType: utf16TextType)
+            ?? decodeClipboardText(from: utf16TextData)
+
         let rtfData = item?.data(forType: .rtf)
         let pngData = pasteboardReader.data(forType: .png)
         let tiffData = pasteboardReader.data(forType: .tiff)
@@ -311,6 +321,23 @@ final class ClipboardMonitor {
         }
 
         return nil
+    }
+
+    private func decodeClipboardText(from data: Data?) -> String? {
+        guard let data else {
+            return nil
+        }
+
+        if let decoded = String(data: data, encoding: .utf8) {
+            return decoded
+        }
+
+        if let decoded = String(data: data, encoding: .utf16) {
+            return decoded
+        }
+
+        return String(data: data, encoding: .utf16LittleEndian)
+            ?? String(data: data, encoding: .utf16BigEndian)
     }
 
     private static func pngData(fromImageData imageData: Data) -> Data? {

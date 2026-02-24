@@ -498,7 +498,9 @@ final class SQLiteHistoryDatabase {
             return nil
         }
 
-        return String(cString: rawValue)
+        let length = Int(sqlite3_column_bytes(statement, index))
+        let data = Data(bytes: rawValue, count: length)
+        return String(decoding: data, as: UTF8.self)
     }
 
     private func execute(_ sql: String) throws {

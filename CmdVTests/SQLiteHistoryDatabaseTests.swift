@@ -55,6 +55,24 @@ final class SQLiteHistoryDatabaseTests: XCTestCase {
         XCTAssertEqual(database.latestHash(), "hash-image-1")
     }
 
+    func testInsertAndFetchVeryLongText() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let longText = String(repeating: "x", count: 600_000)
+
+        _ = database.insertText(
+            text: longText,
+            hash: "hash-long-text",
+            createdAt: Date(),
+            sourceBundleID: nil
+        )
+
+        let items = database.fetchRecentItems(limit: 10)
+
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items.first?.textContent?.count, longText.count)
+        XCTAssertEqual(items.first?.textContent, longText)
+    }
+
     func testDatabaseFileUsesOwnerOnlyPermissions() throws {
         _ = try SQLiteHistoryDatabase(databaseURL: databaseURL)
         let attributes = try FileManager.default.attributesOfItem(atPath: databaseURL.path)
