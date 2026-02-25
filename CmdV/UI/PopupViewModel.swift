@@ -16,6 +16,7 @@ final class PopupViewModel: ObservableObject {
     }
     @Published var activeTab: PopupListTab = .history {
         didSet {
+            historyStore.setScopeForFavoritesOnly(activeTab == .favorites)
             ensureSelectionValid(forceSelectFirst: true)
         }
     }
@@ -79,20 +80,12 @@ final class PopupViewModel: ObservableObject {
     }
 
     var filteredItems: [ClipboardItem] {
-        let tabItems: [ClipboardItem]
-        switch activeTab {
-        case .history:
-            tabItems = allItems.filter { !$0.isFavorited }
-        case .favorites:
-            tabItems = allItems.filter(\.isFavorited)
-        }
-
         let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else {
-            return tabItems
+            return allItems
         }
 
-        return tabItems.filter { item in
+        return allItems.filter { item in
             switch item.type {
             case .text:
                 return item.textContent?.localizedCaseInsensitiveContains(query) ?? false
@@ -259,8 +252,9 @@ final class PopupViewModel: ObservableObject {
     }
 
     func clearCurrentTab() {
+        clearPendingSelection()
         if activeTab == .favorites {
-            historyStore.clearFavoritedItems()
+            historyStore.unfavoriteAllItems()
             return
         }
 
@@ -352,5 +346,12 @@ final class PopupViewModel: ObservableObject {
 
     private func markSelectionExplicit() {
         explicitSelectionToken += 1
+    }
+
+    private func clearPendingSelection() {
+        pendingSelectionAfterDeleteID = nil
+        pendingSelectionAfterDeleteIndex = nil
+        selectedItemID = nil
+        markSelectionExplicit()
     }
 }

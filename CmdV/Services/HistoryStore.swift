@@ -12,6 +12,12 @@ final class HistoryStore: ObservableObject {
     private let settingsSnapshotQueue = DispatchQueue(label: "CmdV.HistoryStoreSettingsSnapshotQueue")
     private let nearDuplicateSuppressionWindow: TimeInterval = 8
     private var maxHistoryItemsSnapshot: Int
+    private enum ActiveItemsScope {
+        case history
+        case favorites
+    }
+
+    private var activeItemsScope: ActiveItemsScope = .history
 
     private var lastInsertedTextFingerprint: String?
     private var lastInsertedTextSourceBundleID: String?
@@ -43,6 +49,18 @@ final class HistoryStore: ObservableObject {
         let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
             self?.publishLatestItems(limit: capacity)
+        }
+    }
+
+    func setScopeForFavoritesOnly(_ onlyFavorites: Bool) {
+        let capacity = currentCapacitySnapshot()
+        queue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.activeItemsScope = onlyFavorites ? .favorites : .history
+            self.publishLatestItems(limit: capacity)
         }
     }
 
@@ -235,7 +253,7 @@ final class HistoryStore: ObservableObject {
         }
     }
 
-    func clearFavoritedItems() {
+    func unfavoriteAllItems() {
         let capacity = currentCapacitySnapshot()
         queue.async { [weak self] in
             guard let self else {
@@ -245,6 +263,10 @@ final class HistoryStore: ObservableObject {
             self.database.clearFavoritedItems()
             self.publishLatestItems(limit: capacity)
         }
+    }
+
+    func clearFavoritedItems() {
+        unfavoriteAllItems()
     }
 
     func trimToCapacity() {
@@ -304,7 +326,14 @@ final class HistoryStore: ObservableObject {
     }
 
     private func publishLatestItems(limit: Int) {
-        let latest = database.fetchRecentItems(limit: limit)
+        let latest: [ClipboardItem]
+        switch activeItemsScope {
+        case .history:
+            latest = database.fetchRecentHistoryItems(limit: limit)
+        case .favorites:
+            latest = database.fetchRecentFavoritedItems(limit: limit)
+        }
+
         DispatchQueue.main.async { [weak self] in
             self?.items = latest
         }

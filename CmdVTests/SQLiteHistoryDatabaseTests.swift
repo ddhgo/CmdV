@@ -55,6 +55,56 @@ final class SQLiteHistoryDatabaseTests: XCTestCase {
         XCTAssertEqual(database.latestHash(), "hash-image-1")
     }
 
+    func testFetchRecentHistoryItemsExcludesFavoritedItems() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_050)
+
+        let favoritedID = database.insertText(
+            text: "favorite",
+            hash: "hash-favorite",
+            createdAt: baseDate,
+            sourceBundleID: nil
+        )
+        _ = database.insertText(
+            text: "regular",
+            hash: "hash-regular",
+            createdAt: baseDate.addingTimeInterval(10),
+            sourceBundleID: nil
+        )
+
+        database.setFavorited(itemID: favoritedID, isFavorited: true)
+
+        let historyItems = database.fetchRecentHistoryItems(limit: 10)
+        XCTAssertEqual(historyItems.count, 1)
+        XCTAssertEqual(historyItems.first?.textContent, "regular")
+        XCTAssertFalse(historyItems.first?.isFavorited == true)
+    }
+
+    func testFetchRecentFavoritedItemsIncludesOnlyFavoritedItems() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_060)
+
+        let favoritedID = database.insertText(
+            text: "favorite",
+            hash: "hash-favorite-two",
+            createdAt: baseDate,
+            sourceBundleID: nil
+        )
+        _ = database.insertText(
+            text: "regular",
+            hash: "hash-regular-two",
+            createdAt: baseDate.addingTimeInterval(10),
+            sourceBundleID: nil
+        )
+
+        database.setFavorited(itemID: favoritedID, isFavorited: true)
+
+        let favoritedItems = database.fetchRecentFavoritedItems(limit: 10)
+        XCTAssertEqual(favoritedItems.count, 1)
+        XCTAssertEqual(favoritedItems.first?.textContent, "favorite")
+        XCTAssertEqual(favoritedItems.first?.isFavorited, true)
+    }
+
     func testInsertAndFetchVeryLongText() throws {
         let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
         let longText = String(repeating: "x", count: 600_000)
@@ -155,7 +205,7 @@ final class SQLiteHistoryDatabaseTests: XCTestCase {
             createdAt: now,
             sourceBundleID: nil
         )
-        let regularID = database.insertText(
+        _ = database.insertText(
             text: "regular",
             hash: "hash-regular",
             createdAt: now.addingTimeInterval(1),

@@ -544,7 +544,7 @@ enum AppText {
         case .settingsClearOnSystemRestart:
             return "Clear on reboot"
         case .settingsClearOnSystemRestartHint:
-            return "When on, history is removed after reboot on the next launch."
+            return "When enabled, non-favorite history is removed after reboot; favorites are kept."
         case .settingsHistoryCapacity:
             return "History capacity"
         case .settingsHistoryCapacityFormat:
@@ -743,7 +743,7 @@ enum AppText {
         case .settingsClearOnSystemRestart:
             return "부팅 시 기록 삭제"
         case .settingsClearOnSystemRestartHint:
-            return "켜면 재부팅 후 모든 기록을 삭제합니다"
+            return "켜면 재부팅 후 기록이 삭제되며, 즐겨찾기는 삭제되지 않습니다"
         case .settingsHistoryCapacity:
             return "기록 용량"
         case .settingsHistoryCapacityFormat:

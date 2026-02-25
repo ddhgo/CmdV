@@ -67,11 +67,39 @@ final class SQLiteHistoryDatabase {
     }
 
     func fetchRecentItems(limit: Int) -> [ClipboardItem] {
+        return fetchRecentItems(limit: limit, isFavoritedOnly: nil)
+    }
+
+    func fetchRecentHistoryItems(limit: Int) -> [ClipboardItem] {
+        return fetchRecentItems(limit: limit, isFavoritedOnly: false)
+    }
+
+    func fetchRecentFavoritedItems(limit: Int) -> [ClipboardItem] {
+        return fetchRecentItems(limit: limit, isFavoritedOnly: true)
+    }
+
+    private func fetchRecentItems(limit: Int, isFavoritedOnly: Bool?) -> [ClipboardItem] {
+        let whereClause: String
+        let orderBy: String
+
+        switch isFavoritedOnly {
+        case true:
+            whereClause = "WHERE is_favorited = 1"
+            orderBy = "created_at DESC, id DESC"
+        case false:
+            whereClause = "WHERE is_favorited = 0"
+            orderBy = "is_pinned DESC, created_at DESC, id DESC"
+        case nil:
+            whereClause = ""
+            orderBy = "is_pinned DESC, created_at DESC, id DESC"
+        }
+
         guard let statement = prepare(
             """
             SELECT id, type, text_content, image_path, content_hash, created_at, source_bundle_id, is_pinned, is_favorited
             FROM history_items
-            ORDER BY is_pinned DESC, created_at DESC, id DESC
+            \(whereClause)
+            ORDER BY \(orderBy)
             LIMIT ?;
             """
         ) else {

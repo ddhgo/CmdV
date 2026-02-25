@@ -166,6 +166,37 @@ final class PopupViewModelSelectionTests: XCTestCase {
         XCTAssertFalse(self.historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited }))
     }
 
+    func testActiveTabSwitchSwitchesVisibleHistoryScope() {
+        historyStore.addTextIfNeeded("favorite", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("normal", sourceBundleID: nil)
+        waitUntil("items inserted") {
+            self.historyStore.items.count == 2
+        }
+
+        guard let favoriteID = self.historyStore.items.last(where: { $0.textContent == "favorite" })?.id else {
+            XCTFail("Expected favorite candidate")
+            return
+        }
+
+        historyStore.setFavorited(itemID: favoriteID, isFavorited: true)
+        waitUntil("favorite updated") {
+            self.historyStore.items.count == 2 &&
+            self.historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited })
+        }
+
+        viewModel.activeTab = .favorites
+        waitUntil("favorites tab filters to favorited") {
+            self.viewModel.filteredItems.count == 1 &&
+            self.viewModel.filteredItems.first?.id == favoriteID
+        }
+
+        viewModel.activeTab = .history
+        waitUntil("history tab filters non-favorited") {
+            self.viewModel.filteredItems.count == 1 &&
+            self.viewModel.filteredItems.first?.textContent == "normal"
+        }
+    }
+
     private func waitUntil(
         _ description: String,
         timeout: TimeInterval = 2.0,
