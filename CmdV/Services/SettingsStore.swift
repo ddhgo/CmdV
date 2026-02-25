@@ -2,6 +2,7 @@ import AppKit
 import Foundation
 import OSLog
 import ServiceManagement
+import Carbon.HIToolbox
 
 enum LaunchAtLoginFeedback: Equatable {
     case enabled
@@ -12,6 +13,8 @@ enum LaunchAtLoginFeedback: Equatable {
 final class SettingsStore: ObservableObject {
     private static let supportedHotkeyModifiers: NSEvent.ModifierFlags = [.command, .option, .control, .shift]
     private static let hotkeyModifierOrder: [NSEvent.ModifierFlags] = [.command, .option, .control, .shift]
+    private static let maxGlobalHotkeyModifiers = 2
+    private static let maxScreenshotHotkeyModifiers = 3
     static let maxHistoryItemsRange: ClosedRange<Int> = 20...1000
     static let maxHistoryItemsUIStepperRange: ClosedRange<Int> = 50...1000
     static let maxHistoryItemsStep = 10
@@ -19,7 +22,6 @@ final class SettingsStore: ObservableObject {
     static let pollingIntervalClampRange: ClosedRange<Double> = 0.2...2.0
     static let pollingIntervalDisplayRange: ClosedRange<Double> = 0.2...1.5
     static let pollingIntervalStep = 0.1
-    private static let maxHotkeyModifiers = 2
 
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.cmdv.app", category: "SettingsStore")
     private let persistenceQueue = DispatchQueue(
@@ -37,6 +39,8 @@ final class SettingsStore: ObservableObject {
         static let clearHistoryOnSystemRestart = "settings.clearHistoryOnSystemRestart"
         static let hotkeyKeyCode = "settings.hotkey.keyCode"
         static let hotkeyModifiersRaw = "settings.hotkey.modifiersRaw"
+        static let screenshotHotkeyKeyCode = "settings.screenshotHotkey.keyCode"
+        static let screenshotHotkeyModifiersRaw = "settings.screenshotHotkey.modifiersRaw"
     }
 
     private let defaults: UserDefaults
@@ -105,6 +109,13 @@ final class SettingsStore: ObservableObject {
         }
     }
 
+    @Published var screenshotHotkey: HotkeyConfiguration {
+        didSet {
+            defaults.set(Int(screenshotHotkey.keyCode), forKey: Keys.screenshotHotkeyKeyCode)
+            defaults.set(Int(screenshotHotkey.modifiers.rawValue), forKey: Keys.screenshotHotkeyModifiersRaw)
+        }
+    }
+
     var excludedBundleIDs: Set<String> {
         let delimiters = CharacterSet.newlines.union(CharacterSet(charactersIn: ","))
         let values = excludedBundleIDsText
@@ -151,10 +162,36 @@ final class SettingsStore: ObservableObject {
             modifiers = HotkeyConfiguration.default.modifiers
         }
 
-        let sanitizedModifiers = Self.sanitizeHotkeyModifiers(modifiers)
+        let sanitizedModifiers = Self.sanitizeHotkeyModifiers(
+            modifiers,
+            maxModifiers: Self.maxGlobalHotkeyModifiers
+        )
         hotkey = HotkeyConfiguration(
             keyCode: keyCode,
             modifiers: sanitizedModifiers.isEmpty ? [.option] : sanitizedModifiers
+        )
+
+        let screenshotKeyCode: UInt32
+        if let storedScreenshotKeyCode = defaults.object(forKey: Keys.screenshotHotkeyKeyCode) as? Int {
+            screenshotKeyCode = UInt32(storedScreenshotKeyCode)
+        } else {
+            screenshotKeyCode = UInt32(kVK_ANSI_4)
+        }
+
+        let screenshotModifiers: NSEvent.ModifierFlags
+        if let storedScreenshotModifiers = defaults.object(forKey: Keys.screenshotHotkeyModifiersRaw) as? Int {
+            screenshotModifiers = NSEvent.ModifierFlags(rawValue: UInt(storedScreenshotModifiers))
+        } else {
+            screenshotModifiers = [.command, .shift, .control]
+        }
+
+        let sanitizedScreenshotModifiers = Self.sanitizeHotkeyModifiers(
+            screenshotModifiers,
+            maxModifiers: Self.maxScreenshotHotkeyModifiers
+        )
+        screenshotHotkey = HotkeyConfiguration(
+            keyCode: screenshotKeyCode,
+            modifiers: sanitizedScreenshotModifiers.isEmpty ? [.command, .shift] : sanitizedScreenshotModifiers
         )
     }
 
@@ -196,7 +233,10 @@ final class SettingsStore: ObservableObject {
     func setHotkeyKeyCode(_ keyCode: UInt32) {
         hotkey = HotkeyConfiguration(
             keyCode: keyCode,
-            modifiers: Self.sanitizeHotkeyModifiers(hotkey.modifiers.intersection(Self.supportedHotkeyModifiers))
+            modifiers: Self.sanitizeHotkeyModifiers(
+                hotkey.modifiers.intersection(Self.supportedHotkeyModifiers),
+                maxModifiers: Self.maxGlobalHotkeyModifiers
+            )
         )
     }
 
@@ -205,7 +245,7 @@ final class SettingsStore: ObservableObject {
 
         if enabled {
             if !modifiers.contains(modifier)
-                && Self.hotkeyModifierCount(modifiers) >= Self.maxHotkeyModifiers {
+                && Self.hotkeyModifierCount(modifiers) >= Self.maxGlobalHotkeyModifiers {
                 return
             }
             modifiers.insert(modifier)
@@ -214,7 +254,8 @@ final class SettingsStore: ObservableObject {
         }
 
         var validModifiers = Self.sanitizeHotkeyModifiers(
-            modifiers.intersection(Self.supportedHotkeyModifiers)
+            modifiers.intersection(Self.supportedHotkeyModifiers),
+            maxModifiers: Self.maxGlobalHotkeyModifiers
         )
         if validModifiers.isEmpty {
             validModifiers = [.option]
@@ -227,6 +268,46 @@ final class SettingsStore: ObservableObject {
 
     func isHotkeyModifierEnabled(_ modifier: NSEvent.ModifierFlags) -> Bool {
         hotkey.modifiers.contains(modifier)
+    }
+
+    func setScreenshotHotkeyKeyCode(_ keyCode: UInt32) {
+        screenshotHotkey = HotkeyConfiguration(
+            keyCode: keyCode,
+            modifiers: Self.sanitizeHotkeyModifiers(
+                screenshotHotkey.modifiers.intersection(Self.supportedHotkeyModifiers),
+                maxModifiers: Self.maxScreenshotHotkeyModifiers
+            )
+        )
+    }
+
+    func setScreenshotHotkeyModifier(_ modifier: NSEvent.ModifierFlags, enabled: Bool) {
+        var modifiers = screenshotHotkey.modifiers
+
+        if enabled {
+            if !modifiers.contains(modifier)
+                && Self.hotkeyModifierCount(modifiers) >= Self.maxScreenshotHotkeyModifiers {
+                return
+            }
+            modifiers.insert(modifier)
+        } else {
+            modifiers.remove(modifier)
+        }
+
+        var validModifiers = Self.sanitizeHotkeyModifiers(
+            modifiers.intersection(Self.supportedHotkeyModifiers),
+            maxModifiers: Self.maxScreenshotHotkeyModifiers
+        )
+        if validModifiers.isEmpty {
+            validModifiers = [.command, .shift]
+        }
+        screenshotHotkey = HotkeyConfiguration(
+            keyCode: screenshotHotkey.keyCode,
+            modifiers: validModifiers
+        )
+    }
+
+    func isScreenshotHotkeyModifierEnabled(_ modifier: NSEvent.ModifierFlags) -> Bool {
+        screenshotHotkey.modifiers.contains(modifier)
     }
 
     private static func readSystemLaunchAtLoginEnabled() -> Bool {
@@ -243,11 +324,12 @@ final class SettingsStore: ObservableObject {
     }
 
     private static func sanitizeHotkeyModifiers(
-        _ modifiers: NSEvent.ModifierFlags
+        _ modifiers: NSEvent.ModifierFlags,
+        maxModifiers: Int
     ) -> NSEvent.ModifierFlags {
         let intersected = modifiers.intersection(Self.supportedHotkeyModifiers)
         var trimmed = NSEvent.ModifierFlags()
-        var remaining = maxHotkeyModifiers
+        var remaining = maxModifiers
 
         for modifier in hotkeyModifierOrder {
             guard remaining > 0 else {
@@ -356,8 +438,11 @@ enum AppTextKey {
     case settingsHistoryCapacityHint
     case settingsClipboardPolling
     case settingsClipboardPollingHint
+    case settingsOpenClipboardWindow
     case settingsGlobalHotkey
+    case settingsScreenshotHotkey
     case settingsGlobalHotkeyHint
+    case settingsScreenshotHotkeyHint
     case settingsCurrentShortcut
     case settingsHotkeyKey
     case settingsHotkeyModifiers
@@ -420,7 +505,7 @@ enum AppText {
     private static func englishValue(_ key: AppTextKey) -> String {
         switch key {
         case .menuOpenClipboardHistory:
-            return "Open Clipboard History"
+            return "Clipboard History"
         case .menuHotkeyFormat:
             return "Hotkey: %@"
         case .menuSettings:
@@ -430,9 +515,9 @@ enum AppText {
         case .menuActivationTitle:
             return "CmdV"
         case .menuActivationStatusEnabled:
-            return "Clipboard On"
+            return "History Active"
         case .menuActivationStatusDisabled:
-            return "Clipboard Off"
+            return "History Paused"
 
         case .popupResume:
             return "Resume"
@@ -461,7 +546,7 @@ enum AppText {
         case .popupClear:
             return "Clear"
         case .popupClearFavorites:
-            return "Unfavorite All"
+            return "Clear Favorites"
         case .popupWindowTitle:
             return "Clipboard"
         case .popupPermissionBanner:
@@ -516,9 +601,9 @@ enum AppText {
         case .settingsAbout:
             return "About"
         case .settingsDeveloperName:
-            return "Creator"
+            return "Developer"
         case .settingsDeveloperAddress:
-            return "Links"
+            return "Related Links"
         case .settingsVersion:
             return "App version"
         case .settingsFeedback:
@@ -531,6 +616,8 @@ enum AppText {
             return "Support the creator"
         case .settingsLanguage:
             return "Language"
+        case .settingsOpenClipboardWindow:
+            return "Open Clipboard Window"
         case .settingsPauseRecording:
             return "Pause recording"
         case .settingsLaunchAtLogin:
@@ -542,13 +629,13 @@ enum AppText {
         case .settingsLaunchAtLoginFailedFormat:
             return "Failed: %@"
         case .settingsClearOnSystemRestart:
-            return "Clear on reboot"
+            return "Clear on restart"
         case .settingsClearOnSystemRestartHint:
             return "When enabled, non-favorite history is removed after reboot; favorites are kept."
         case .settingsHistoryCapacity:
             return "History capacity"
         case .settingsHistoryCapacityFormat:
-            return "History capacity %d items"
+            return "History limit: %d items"
         case .settingsHistoryCapacityUnit:
             return "items"
         case .settingsHistoryCapacityHint:
@@ -558,9 +645,13 @@ enum AppText {
         case .settingsClipboardPollingHint:
             return "Polling interval in seconds: how often CmdV checks clipboard changes. Lower is faster; higher uses less CPU."
         case .settingsGlobalHotkey:
-            return "Global Hotkey"
+            return "Keyboard Shortcuts"
+        case .settingsScreenshotHotkey:
+            return "Clipboard Capture"
         case .settingsGlobalHotkeyHint:
             return "Use a global shortcut to toggle the clipboard history."
+        case .settingsScreenshotHotkeyHint:
+            return "Take a screenshot and copy it directly to clipboard."
         case .settingsCurrentShortcut:
             return "Current shortcut"
         case .settingsHotkeyKey:
@@ -582,11 +673,11 @@ enum AppText {
         case .settingsHotkeyUnavailableHint:
             return "This hotkey is already in use by another app. Choose a different combination."
         case .settingsPrivacy:
-            return "Auto-Paste & Permission"
+            return "Accessibility & Permissions"
         case .settingsExcludedAppsHint:
             return "Clipboard from these bundle IDs is not saved (one per line)"
         case .settingsAutoPaste:
-            return "Auto-Paste"
+            return "Auto-Paste Enabled"
         case .settingsPermissionEnabled:
             return "Accessibility permission is enabled"
         case .settingsPermissionEnabledHelp:
@@ -598,7 +689,7 @@ enum AppText {
         case .settingsRequestPermission:
             return "Request Permission"
         case .settingsOpenPrivacySettings:
-            return "Open Privacy Settings"
+            return "Privacy Settings"
         case .settingsRecheckPermission:
             return "Re-check"
         case .settingsNoPermissionHint:
@@ -730,6 +821,8 @@ enum AppText {
             return "제작자에게 후원하기"
         case .settingsLanguage:
             return "언어"
+        case .settingsOpenClipboardWindow:
+            return "클립보드 창 열기"
         case .settingsPauseRecording:
             return "기록 일시정지"
         case .settingsLaunchAtLogin:
@@ -757,9 +850,13 @@ enum AppText {
         case .settingsClipboardPollingHint:
             return "단위: 초. 클립보드 변경을 확인하는 주기입니다. 값이 낮을수록 빠르고, 높을수록 CPU 사용이 줄어듭니다."
         case .settingsGlobalHotkey:
-            return "전역 단축키"
+            return "단축키 설정"
+        case .settingsScreenshotHotkey:
+            return "클립보드 캡처"
         case .settingsGlobalHotkeyHint:
             return "단축키로 클립보드 기록 창을\n열고 닫습니다."
+        case .settingsScreenshotHotkeyHint:
+            return "화면을 캡처해 클립보드에 바로 복사합니다."
         case .settingsCurrentShortcut:
             return "현재 단축키"
         case .settingsHotkeyKey:

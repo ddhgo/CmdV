@@ -378,32 +378,29 @@ struct SettingsView: View {
     private var hotkeySection: some View {
         settingsCard(title: AppText.value(.settingsGlobalHotkey, language: language)) {
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top, spacing: 8) {
-                    Text(AppText.value(.settingsGlobalHotkeyHint, language: language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(nil)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
+                hotkeyRow(
+                    title: AppText.value(.settingsOpenClipboardWindow, language: language),
+                    keyCode: settings.hotkey.keyCode,
+                    isModifierEnabled: settings.isHotkeyModifierEnabled,
+                    selectedModifierCount: shortcutModifierCount(
+                        isModifierEnabled: settings.isHotkeyModifierEnabled
+                    ),
+                    maxModifierCount: 2,
+                    setModifier: settings.setHotkeyModifier,
+                    setKeyCode: settings.setHotkeyKeyCode
+                )
 
-                    Spacer(minLength: 0)
-
-                    HStack(spacing: 8) {
-                        modifierMenu
-                        hotkeyKeyMenu
-                    }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-
-                if runtimeState.hotkeyRegistrationFailed {
-                    Text(AppText.value(.settingsHotkeyUnavailableHint, language: language))
-                        .font(.caption)
-                        .foregroundStyle(Color.orange)
-                        .lineLimit(nil)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                hotkeyRow(
+                    title: AppText.value(.settingsScreenshotHotkey, language: language),
+                    keyCode: settings.screenshotHotkey.keyCode,
+                    isModifierEnabled: settings.isScreenshotHotkeyModifierEnabled,
+                    selectedModifierCount: shortcutModifierCount(
+                        isModifierEnabled: settings.isScreenshotHotkeyModifierEnabled
+                    ),
+                    maxModifierCount: 3,
+                    setModifier: settings.setScreenshotHotkeyModifier,
+                    setKeyCode: settings.setScreenshotHotkeyKeyCode
+                )
             }
         }
     }
@@ -631,15 +628,85 @@ struct SettingsView: View {
         }
     }
 
-    private var modifierMenu: some View {
+    private func hotkeyRow(
+        title: String,
+        keyCode: UInt32,
+        isModifierEnabled: @escaping (NSEvent.ModifierFlags) -> Bool,
+        selectedModifierCount: Int,
+        maxModifierCount: Int,
+        setModifier: @escaping (NSEvent.ModifierFlags, Bool) -> Void,
+        setKeyCode: @escaping (UInt32) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(1)
+                }
+
+                Spacer(minLength: 0)
+
+                HStack(spacing: 8) {
+                    shortcutModifierMenu(
+                        isModifierEnabled: isModifierEnabled,
+                        selectedModifierCount: selectedModifierCount,
+                        maxModifierCount: maxModifierCount,
+                        setModifier: setModifier
+                    )
+                    shortcutKeyMenu(
+                        currentKeyCode: keyCode,
+                        isKeyCodeSelected: { option in
+                            keyCode == option.keyCode
+                        },
+                        setKeyCode: setKeyCode
+                    )
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+
+    private func shortcutModifierMenu(
+        isModifierEnabled: @escaping (NSEvent.ModifierFlags) -> Bool,
+        selectedModifierCount: Int,
+        maxModifierCount: Int,
+        setModifier: @escaping (NSEvent.ModifierFlags, Bool) -> Void
+    ) -> some View {
         return Menu {
-            modifierMenuItem(modifier: .command)
-            modifierMenuItem(modifier: .option)
-            modifierMenuItem(modifier: .control)
-            modifierMenuItem(modifier: .shift)
+            shortcutModifierMenuItem(
+                modifier: .command,
+                isEnabled: isModifierEnabled(.command),
+                selectedModifierCount: selectedModifierCount,
+                maxModifierCount: maxModifierCount,
+                setModifier: setModifier
+            )
+            shortcutModifierMenuItem(
+                modifier: .option,
+                isEnabled: isModifierEnabled(.option),
+                selectedModifierCount: selectedModifierCount,
+                maxModifierCount: maxModifierCount,
+                setModifier: setModifier
+            )
+            shortcutModifierMenuItem(
+                modifier: .control,
+                isEnabled: isModifierEnabled(.control),
+                selectedModifierCount: selectedModifierCount,
+                maxModifierCount: maxModifierCount,
+                setModifier: setModifier
+            )
+            shortcutModifierMenuItem(
+                modifier: .shift,
+                isEnabled: isModifierEnabled(.shift),
+                selectedModifierCount: selectedModifierCount,
+                maxModifierCount: maxModifierCount,
+                setModifier: setModifier
+            )
         } label: {
             HStack(spacing: 5) {
-                Text(activeModifierSummary)
+                Text(shortcutModifierSummary(isModifierEnabled: isModifierEnabled))
                     .font(.system(.body, design: .monospaced, weight: .medium))
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -652,17 +719,19 @@ struct SettingsView: View {
     }
 
     @ViewBuilder
-    private func modifierMenuItem(modifier: NSEvent.ModifierFlags) -> some View {
+    private func shortcutModifierMenuItem(
+        modifier: NSEvent.ModifierFlags,
+        isEnabled: Bool,
+        selectedModifierCount: Int,
+        maxModifierCount: Int,
+        setModifier: @escaping (NSEvent.ModifierFlags, Bool) -> Void
+    ) -> some View {
         let symbol = modifierSymbolName(modifier)
-        let isEnabled = settings.isHotkeyModifierEnabled(modifier)
-        let selectedModifierCount = [NSEvent.ModifierFlags.command, .option, .control, .shift].reduce(0) { count, flag in
-            count + (settings.isHotkeyModifierEnabled(flag) ? 1 : 0)
-        }
-        let canSelect = isEnabled || selectedModifierCount < 2
+        let canSelect = isEnabled || selectedModifierCount < maxModifierCount
 
         Button {
             if canSelect {
-                settings.setHotkeyModifier(modifier, enabled: !isEnabled)
+                setModifier(modifier, !isEnabled)
             }
         } label: {
             HStack(spacing: 8) {
@@ -684,20 +753,24 @@ struct SettingsView: View {
         .disabled(!canSelect)
     }
 
-    private var hotkeyKeyMenu: some View {
+    private func shortcutKeyMenu(
+        currentKeyCode: UInt32,
+        isKeyCodeSelected: @escaping (HotkeyOption) -> Bool,
+        setKeyCode: @escaping (UInt32) -> Void
+    ) -> some View {
         Menu {
             ForEach(HotkeyCatalog.options) { option in
                 Button {
-                    settings.setHotkeyKeyCode(option.keyCode)
+                    setKeyCode(option.keyCode)
                 } label: {
-                    let selected = settings.hotkey.keyCode == option.keyCode
+                    let selected = isKeyCodeSelected(option)
                     Text(selected ? "✓ \(option.label)" : option.label)
                 }
             }
             } label: {
             HStack(spacing: 6) {
                 Text(
-                    HotkeyCatalog.options.first(where: { $0.keyCode == settings.hotkey.keyCode })?.label ?? "V"
+                    HotkeyCatalog.options.first(where: { $0.keyCode == currentKeyCode })?.label ?? "V"
                 )
                 .font(.system(.body, design: .monospaced, weight: .medium))
                 .lineLimit(1)
@@ -710,15 +783,21 @@ struct SettingsView: View {
         .menuStyle(.borderedButton)
     }
 
-    private var activeModifierSummary: String {
+    private func shortcutModifierSummary(isModifierEnabled: (NSEvent.ModifierFlags) -> Bool) -> String {
         let activeFlags: [NSEvent.ModifierFlags] = [.command, .option, .control, .shift]
         let items = activeFlags.compactMap { flag in
-            settings.isHotkeyModifierEnabled(flag) ? activeModifierGlyph(flag) : nil
+            isModifierEnabled(flag) ? activeModifierGlyph(flag) : nil
         }
 
         return items.isEmpty
             ? (language == .korean ? "단일키" : "Key only")
             : items.joined(separator: " + ")
+    }
+
+    private func shortcutModifierCount(isModifierEnabled: (NSEvent.ModifierFlags) -> Bool) -> Int {
+        [NSEvent.ModifierFlags.command, .option, .control, .shift].reduce(0) { count, flag in
+            count + (isModifierEnabled(flag) ? 1 : 0)
+        }
     }
 
     private func activeModifierGlyph(_ modifier: NSEvent.ModifierFlags) -> String {

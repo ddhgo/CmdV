@@ -1,18 +1,60 @@
 import Carbon.HIToolbox
 import Foundation
 
-private let hotkeySignature: OSType = {
-    let chars: [UInt8] = Array("CCVH".utf8)
-    return (UInt32(chars[0]) << 24) | (UInt32(chars[1]) << 16) | (UInt32(chars[2]) << 8) | UInt32(chars[3])
-}()
-
 final class HotkeyManager {
+    private let hotkeySignature: OSType
     private var hotKeyRef: EventHotKeyRef?
     private var eventHandlerRef: EventHandlerRef?
     private var handler: (() -> Void)?
 
-    init() {
+    init(signature: String = "CCVH") {
+        let characters = Array(signature.utf8)
+        if characters.count == 4 {
+            hotkeySignature = (UInt32(characters[0]) << 24)
+                | (UInt32(characters[1]) << 16)
+                | (UInt32(characters[2]) << 8)
+                | UInt32(characters[3])
+        } else {
+            hotkeySignature = (UInt32(0x43) << 24) | (UInt32(0x43) << 16) | (UInt32(0x56) << 8) | UInt32(0x48)
+        }
         installEventHandler()
+    }
+
+    private static let eventHandler: EventHandlerUPP = { _, eventRef, userData in
+        guard let eventRef else {
+            return noErr
+        }
+
+        guard let userData else {
+            return noErr
+        }
+
+        let manager = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
+
+        var hotKeyID = EventHotKeyID()
+        let status = GetEventParameter(
+            eventRef,
+            EventParamName(kEventParamDirectObject),
+            EventParamType(typeEventHotKeyID),
+            nil,
+            MemoryLayout<EventHotKeyID>.size,
+            nil,
+            &hotKeyID
+        )
+
+        guard status == noErr else {
+            return status
+        }
+
+        if hotKeyID.signature != manager.hotkeySignature {
+            return OSStatus(eventNotHandledErr)
+        }
+
+        DispatchQueue.main.async {
+            manager.handler?()
+        }
+
+        return noErr
     }
 
     deinit {
@@ -61,33 +103,7 @@ final class HotkeyManager {
 
         InstallEventHandler(
             GetEventDispatcherTarget(),
-            { _, eventRef, userData in
-                guard let userData else {
-                    return noErr
-                }
-
-                let manager = Unmanaged<HotkeyManager>.fromOpaque(userData).takeUnretainedValue()
-                guard let eventRef else {
-                    return noErr
-                }
-
-                var hotKeyID = EventHotKeyID()
-                let status = GetEventParameter(
-                    eventRef,
-                    EventParamName(kEventParamDirectObject),
-                    EventParamType(typeEventHotKeyID),
-                    nil,
-                    MemoryLayout<EventHotKeyID>.size,
-                    nil,
-                    &hotKeyID
-                )
-
-                if status == noErr, hotKeyID.signature == hotkeySignature {
-                    manager.handler?()
-                }
-
-                return noErr
-            },
+            Self.eventHandler,
             1,
             &eventSpec,
             UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()),

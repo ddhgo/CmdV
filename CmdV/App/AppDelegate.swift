@@ -3,9 +3,11 @@ import ApplicationServices
 import Combine
 import Darwin
 import Foundation
+import OSLog
 
 final class AppRuntimeState: ObservableObject {
     @Published var hotkeyRegistrationFailed: Bool = false
+    @Published var screenshotHotkeyRegistrationFailed: Bool = false
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -24,6 +26,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController?
     private let spotlightAliasIndexer = SpotlightAliasIndexer()
     private let hotkeyManager = HotkeyManager()
+    private let screenshotHotkeyManager = HotkeyManager(signature: "CCSC")
+    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.cmdv.app", category: "AppDelegate")
 
     private var previousActiveApplication: NSRunningApplication?
     private var previousFocusedElement: AXUIElement?
@@ -108,11 +112,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         bindState()
         registerHotkey()
+        registerScreenshotHotkey()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         clipboardMonitor?.stop()
         hotkeyManager.unregister()
+        screenshotHotkeyManager.unregister()
         stopTrackingLastActiveApplication()
     }
 
@@ -127,6 +133,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
                 self.statusBarController?.updateHotkey(hotkey)
                 self.registerHotkey()
+            }
+            .store(in: &cancellables)
+
+        settings.$screenshotHotkey
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.registerScreenshotHotkey()
             }
             .store(in: &cancellables)
 
@@ -163,7 +177,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerHotkey() {
-        let didRegister = hotkeyManager.register(hotkey: settings.hotkey) { [weak self] in
+        let hotkey = settings.hotkey
+        let didRegister = hotkeyManager.register(hotkey: hotkey) { [weak self] in
             guard let self else {
                 return
             }
@@ -175,6 +190,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.togglePopup()
         }
         runtimeState.hotkeyRegistrationFailed = !didRegister
+    }
+
+    private func registerScreenshotHotkey() {
+        let hotkey = settings.screenshotHotkey
+        let didRegister = screenshotHotkeyManager.register(hotkey: hotkey) { [weak self] in
+            self?.takeScreenshotToClipboard()
+        }
+        runtimeState.screenshotHotkeyRegistrationFailed = !didRegister
+    }
+
+    private func takeScreenshotToClipboard() {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+        process.arguments = ["-i", "-c"]
+
+        do {
+            try process.run()
+        } catch {
+            logger.error("Unable to launch screenshot capture: \(error.localizedDescription, privacy: .public)")
+            NSSound.beep()
+        }
     }
 
     private func togglePopup() {
