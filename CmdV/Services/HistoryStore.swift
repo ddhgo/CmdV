@@ -228,9 +228,21 @@ final class HistoryStore: ObservableObject {
                 return
             }
 
-            let removedPaths = self.database.clearAll()
+            let removedPaths = self.database.clearNonFavoritedItems()
             self.imageStorage.removeImages(at: removedPaths)
             self.resetRecentTextCaptureState()
+            self.publishLatestItems(limit: capacity)
+        }
+    }
+
+    func clearFavoritedItems() {
+        let capacity = currentCapacitySnapshot()
+        queue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            self.database.clearFavoritedItems()
             self.publishLatestItems(limit: capacity)
         }
     }

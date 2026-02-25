@@ -307,6 +307,7 @@ enum AppTextKey {
     case popupCopy
     case popupShare
     case popupClear
+    case popupClearFavorites
     case popupWindowTitle
     case popupPermissionBanner
     case popupRecordingDisabledBanner
@@ -459,6 +460,8 @@ enum AppText {
             return "Share"
         case .popupClear:
             return "Clear"
+        case .popupClearFavorites:
+            return "Unfavorite All"
         case .popupWindowTitle:
             return "Clipboard"
         case .popupPermissionBanner:
@@ -656,6 +659,8 @@ enum AppText {
             return "공유"
         case .popupClear:
             return "모두 삭제"
+        case .popupClearFavorites:
+            return "모두 해제"
         case .popupWindowTitle:
             return "클립보드"
         case .popupPermissionBanner:

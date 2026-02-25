@@ -82,7 +82,7 @@ final class PopupViewModel: ObservableObject {
         let tabItems: [ClipboardItem]
         switch activeTab {
         case .history:
-            tabItems = allItems
+            tabItems = allItems.filter { !$0.isFavorited }
         case .favorites:
             tabItems = allItems.filter(\.isFavorited)
         }
@@ -255,6 +255,15 @@ final class PopupViewModel: ObservableObject {
     }
 
     func clearHistory() {
+        historyStore.clearHistory()
+    }
+
+    func clearCurrentTab() {
+        if activeTab == .favorites {
+            historyStore.clearFavoritedItems()
+            return
+        }
+
         historyStore.clearHistory()
     }
 

@@ -176,9 +176,9 @@ struct PopupContentView: View {
 
     private var clearAllButton: some View {
         Button {
-            viewModel.clearHistory()
+            viewModel.clearCurrentTab()
         } label: {
-            Text(AppText.value(.popupClear, language: viewModel.appLanguage))
+            Text(viewModel.activeTab == .favorites ? AppText.value(.popupClearFavorites, language: viewModel.appLanguage) : AppText.value(.popupClear, language: viewModel.appLanguage))
                 .font(.system(size: 13, weight: .semibold))
                 .lineLimit(1)
                 .frame(width: 88, height: 36)
@@ -193,7 +193,11 @@ struct PopupContentView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(searchBarBorderColor, lineWidth: 1)
         )
-        .accessibilityLabel(AppText.value(.popupClear, language: viewModel.appLanguage))
+        .accessibilityLabel(
+            viewModel.activeTab == .favorites
+                ? AppText.value(.popupClearFavorites, language: viewModel.appLanguage)
+                : AppText.value(.popupClear, language: viewModel.appLanguage)
+        )
     }
 
     private var favoritesTabButton: some View {

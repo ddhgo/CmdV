@@ -117,6 +117,55 @@ final class PopupViewModelSelectionTests: XCTestCase {
         }
     }
 
+    func testHistoryTabExcludesFavoritedItems() {
+        historyStore.addTextIfNeeded("favorite", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("normal", sourceBundleID: nil)
+        waitUntil("items inserted") {
+            self.historyStore.items.count == 2
+        }
+
+        guard let favoriteID = self.historyStore.items.last(where: { $0.textContent == "favorite" })?.id else {
+            XCTFail("Expected favorite candidate")
+            return
+        }
+
+        historyStore.setFavorited(itemID: favoriteID, isFavorited: true)
+        waitUntil("favorite updated") {
+            self.historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited })
+        }
+
+        XCTAssertEqual(self.viewModel.filteredItems.count, 1)
+        XCTAssertTrue(self.viewModel.filteredItems.allSatisfy { !$0.isFavorited })
+    }
+
+    func testClearCurrentTabInFavoritesClearsFavoritesOnly() {
+        historyStore.addTextIfNeeded("favorite", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("normal", sourceBundleID: nil)
+        waitUntil("items inserted") {
+            self.historyStore.items.count == 2
+        }
+
+        guard let favoriteID = self.historyStore.items.last(where: { $0.textContent == "favorite" })?.id else {
+            XCTFail("Expected favorite candidate")
+            return
+        }
+
+        historyStore.setFavorited(itemID: favoriteID, isFavorited: true)
+        waitUntil("favorite updated") {
+            self.historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited })
+        }
+
+        viewModel.activeTab = .favorites
+        viewModel.clearCurrentTab()
+
+        waitUntil("favorites cleared") {
+            self.historyStore.items.count == 1 &&
+            self.historyStore.items.first?.textContent == "normal"
+        }
+
+        XCTAssertFalse(self.historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited }))
+    }
+
     private func waitUntil(
         _ description: String,
         timeout: TimeInterval = 2.0,

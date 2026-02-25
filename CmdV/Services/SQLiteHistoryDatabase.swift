@@ -368,6 +368,15 @@ final class SQLiteHistoryDatabase {
         _ = sqlite3_step(statement)
     }
 
+    func clearFavoritedItems() {
+        guard let statement = prepare("UPDATE history_items SET is_favorited = 0 WHERE is_favorited = 1;") else {
+            return
+        }
+
+        defer { sqlite3_finalize(statement) }
+        _ = sqlite3_step(statement)
+    }
+
     func clearAll() -> [String] {
         var removedPaths: [String] = []
 
@@ -383,6 +392,34 @@ final class SQLiteHistoryDatabase {
         }
 
         if let statement = prepare("DELETE FROM history_items;") {
+            defer { sqlite3_finalize(statement) }
+            _ = sqlite3_step(statement)
+        }
+
+        return removedPaths
+    }
+
+    func clearNonFavoritedItems() -> [String] {
+        var removedPaths: [String] = []
+
+        if let statement = prepare(
+            """
+            SELECT image_path
+            FROM history_items
+            WHERE type = 'image'
+              AND image_path IS NOT NULL
+              AND is_favorited = 0;
+            """
+        ) {
+            defer { sqlite3_finalize(statement) }
+            while sqlite3_step(statement) == SQLITE_ROW {
+                if let path = columnString(statement: statement, at: 0) {
+                    removedPaths.append(path)
+                }
+            }
+        }
+
+        if let statement = prepare("DELETE FROM history_items WHERE is_favorited = 0;") {
             defer { sqlite3_finalize(statement) }
             _ = sqlite3_step(statement)
         }

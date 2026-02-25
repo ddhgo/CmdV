@@ -130,6 +130,33 @@ final class HistoryStoreIntegrationTests: XCTestCase {
         XCTAssertTrue(historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited }))
     }
 
+    func testClearHistoryKeepsFavoritedItems() {
+        historyStore.addTextIfNeeded("Favorite Item", sourceBundleID: nil)
+        historyStore.addTextIfNeeded("Nonfavorite Item", sourceBundleID: nil)
+        waitUntil("items inserted") {
+            self.historyStore.items.count == 2
+        }
+
+        guard let favoriteID = self.historyStore.items.last(where: { $0.textContent == "Favorite Item" })?.id else {
+            XCTFail("Expected favorite candidate")
+            return
+        }
+
+        historyStore.setFavorited(itemID: favoriteID, isFavorited: true)
+        waitUntil("favorite set") {
+            self.historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited })
+        }
+
+        historyStore.clearHistory()
+        waitUntil("history cleared except favorite") {
+            self.historyStore.items.count == 1
+        }
+
+        XCTAssertEqual(self.historyStore.items.first?.id, favoriteID)
+        XCTAssertEqual(self.historyStore.items.first?.textContent, "Favorite Item")
+        XCTAssertTrue(self.historyStore.items.first?.isFavorited == true)
+    }
+
     func testRecopyingThirdFileEntryMovesToTopAndDoesNotDuplicate() {
         let firstURL = makeTemporaryTextFile(name: "first.txt", content: "first")
         let secondURL = makeTemporaryTextFile(name: "second.txt", content: "second")

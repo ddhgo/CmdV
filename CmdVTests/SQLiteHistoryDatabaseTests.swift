@@ -145,6 +145,67 @@ final class SQLiteHistoryDatabaseTests: XCTestCase {
         XCTAssertEqual(removedPaths, Set(["/tmp/image-1.png", "/tmp/image-2.png"]))
     }
 
+    func testClearNonFavoritedItemsPreservesFavorited() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let now = Date()
+
+        let favoriteID = database.insertText(
+            text: "favorite",
+            hash: "hash-favorite",
+            createdAt: now,
+            sourceBundleID: nil
+        )
+        let regularID = database.insertText(
+            text: "regular",
+            hash: "hash-regular",
+            createdAt: now.addingTimeInterval(1),
+            sourceBundleID: nil
+        )
+        _ = database.insertImage(
+            imagePath: "/tmp/keep-image.png",
+            hash: "hash-image-keep",
+            createdAt: now.addingTimeInterval(2),
+            sourceBundleID: nil
+        )
+
+        database.setFavorited(itemID: favoriteID, isFavorited: true)
+
+        let removedPaths = Set(database.clearNonFavoritedItems())
+        let items = database.fetchRecentItems(limit: 10)
+
+        XCTAssertEqual(removedPaths, Set(["/tmp/keep-image.png"]))
+        XCTAssertEqual(items.count, 1)
+        XCTAssertEqual(items.first?.id, favoriteID)
+        XCTAssertEqual(items.first?.textContent, "favorite")
+        XCTAssertTrue(items.first?.isFavorited == true)
+    }
+
+    func testClearFavoritedItems() throws {
+        let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
+        let now = Date()
+
+        let favoriteID = database.insertText(
+            text: "favorite",
+            hash: "hash-favorite",
+            createdAt: now,
+            sourceBundleID: nil
+        )
+
+        database.setFavorited(itemID: favoriteID, isFavorited: true)
+        let regularID = database.insertText(
+            text: "regular",
+            hash: "hash-regular",
+            createdAt: now.addingTimeInterval(1),
+            sourceBundleID: nil
+        )
+
+        database.clearFavoritedItems()
+        let items = database.fetchRecentItems(limit: 10)
+
+        XCTAssertTrue(items.contains(where: { $0.id == favoriteID && !$0.isFavorited }))
+        XCTAssertTrue(items.contains(where: { $0.id == regularID }))
+    }
+
     func testPinnedItemsAppearFirstAfterUpdate() throws {
         let database = try SQLiteHistoryDatabase(databaseURL: databaseURL)
         let baseDate = Date(timeIntervalSince1970: 1_700_000_200)
