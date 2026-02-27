@@ -136,9 +136,9 @@ final class SettingsWindowController {
     private var settingsWindowBackgroundColor: NSColor {
         NSColor(name: nil) { appearance in
             if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                return NSColor(srgbRed: 0.22, green: 0.22, blue: 0.23, alpha: 1)
+                return NSColor(srgbRed: 0.18, green: 0.18, blue: 0.20, alpha: 1)
             }
-            return NSColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: 1)
+            return NSColor(srgbRed: 0.98, green: 0.99, blue: 1.0, alpha: 0.94)
         }
     }
 }

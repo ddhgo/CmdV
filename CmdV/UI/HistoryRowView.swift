@@ -230,47 +230,19 @@ struct HistoryRowView: View {
     }
 
     private var rowBackgroundColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.21, green: 0.22, blue: 0.25, alpha: 0.86)
-                }
-                return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
-            }
-        )
+        CmdVTheme.Colors.rowSurface
     }
 
     private var rowStrokeColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor.white.withAlphaComponent(0.06)
-                }
-                return NSColor.black.withAlphaComponent(0.08)
-            }
-        )
+        CmdVTheme.Colors.subtleStroke
     }
 
     private var selectedRowFillColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.31, green: 0.35, blue: 0.42, alpha: 0.54)
-                }
-                return NSColor(srgbRed: 0.42, green: 0.5, blue: 0.62, alpha: 0.24)
-            }
-        )
+        CmdVTheme.Colors.rowSelectedSurface
     }
 
     private var selectedRowStrokeColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.48, green: 0.56, blue: 0.68, alpha: 0.9)
-                }
-                return NSColor(srgbRed: 0.34, green: 0.45, blue: 0.6, alpha: 0.86)
-            }
-        )
+        CmdVTheme.Colors.rowSelectedStroke
     }
 
     private var hasShareAction: Bool {
@@ -292,14 +264,7 @@ struct HistoryRowView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(
-                    Color(
-                        nsColor: NSColor(name: nil) { appearance in
-                            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                                return NSColor(srgbRed: 0.30, green: 0.4, blue: 0.58, alpha: 0.9)
-                            }
-                            return NSColor(srgbRed: 0.73, green: 0.79, blue: 0.9, alpha: 1)
-                        }
-                    )
+                    CmdVTheme.Colors.controlSurface
                 )
                 .frame(width: 36, height: 36)
             Image(systemName: "doc.fill")
@@ -465,7 +430,7 @@ private struct ThumbnailImageView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.black.opacity(0.08), lineWidth: 1)
+                .stroke(CmdVTheme.Colors.subtleStroke, lineWidth: 1)
         )
         .onAppear {
             guard image == nil else {
@@ -482,13 +447,6 @@ private struct ThumbnailImageView: View {
     }
 
     private var rowBackgroundColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.2, blue: 0.21, alpha: 1)
-                }
-                return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
-            }
-        )
+        CmdVTheme.Colors.controlSurface
     }
 }

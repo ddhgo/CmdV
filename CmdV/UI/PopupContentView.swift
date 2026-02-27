@@ -14,6 +14,7 @@ struct PopupContentView: View {
     @State private var contextMenuActive = false
     @State private var allowSelectedFallbackHighlight = false
     @State private var lastExplicitSelectionToken = 0
+    private let popupCornerRadius: CGFloat = 16
 
     var body: some View {
         VStack(spacing: 8) {
@@ -31,7 +32,10 @@ struct PopupContentView: View {
         }
         .padding(12)
         .frame(minWidth: PopupLayout.minimumWidth, minHeight: PopupLayout.minimumHeight)
-        .background(popupBackgroundColor)
+        .background(
+            RoundedRectangle(cornerRadius: popupCornerRadius, style: .continuous)
+                .fill(popupBackgroundColor)
+        )
         .onAppear {
             contextMenuItemID = nil
             hoveredItemID = nil
@@ -389,58 +393,23 @@ struct PopupContentView: View {
     }
 
     private var popupBackgroundColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.16, green: 0.17, blue: 0.19, alpha: 0.85)
-                }
-                return NSColor(srgbRed: 0.94, green: 0.95, blue: 0.97, alpha: 0.9)
-            }
-        )
+        CmdVTheme.Colors.windowSurface
     }
 
     private var popupSurfaceColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.2, green: 0.21, blue: 0.24, alpha: 0.8)
-                }
-                return NSColor(srgbRed: 0.97, green: 0.98, blue: 0.99, alpha: 0.92)
-            }
-        )
+        CmdVTheme.Colors.controlSurface
     }
 
     private var popupDividerColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor.white.withAlphaComponent(0.1)
-                }
-                return NSColor.black.withAlphaComponent(0.1)
-            }
-        )
+        CmdVTheme.Colors.subtleStroke
     }
 
     private var searchBarBorderColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor.white.withAlphaComponent(0.12)
-                }
-                return NSColor.black.withAlphaComponent(0.08)
-            }
-        )
+        CmdVTheme.Colors.subtleStroke
     }
 
     private var selectedRowStrokeColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.48, green: 0.56, blue: 0.68, alpha: 0.9)
-                }
-                return NSColor(srgbRed: 0.34, green: 0.45, blue: 0.6, alpha: 0.86)
-            }
-        )
+        CmdVTheme.Colors.rowSelectedStroke
     }
 
     @ViewBuilder

@@ -87,21 +87,16 @@ private final class MenuActivationSwitchControl: NSControl {
         CATransaction.setDisableActions(!animated)
 
         trackLayer.backgroundColor = (isOn ? NSColor.systemBlue : offTrackColor).cgColor
-        knobLayer.backgroundColor = NSColor(srgbRed: 0.93, green: 0.94, blue: 0.96, alpha: 1).cgColor
+        knobLayer.backgroundColor = CmdVTheme.Colors.statusBarSwitchKnobColor.cgColor
         knobLayer.borderWidth = 0.5
-        knobLayer.borderColor = NSColor.black.withAlphaComponent(0.12).cgColor
+        knobLayer.borderColor = CmdVTheme.Colors.statusBarSwitchKnobBorderColor.cgColor
 
         layoutLayers()
         CATransaction.commit()
     }
 
     private var offTrackColor: NSColor {
-        NSColor(name: nil) { appearance in
-            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                return NSColor(srgbRed: 0.26, green: 0.27, blue: 0.31, alpha: 1)
-            }
-            return NSColor(srgbRed: 0.74, green: 0.75, blue: 0.78, alpha: 1)
-        }
+        CmdVTheme.Colors.statusBarSwitchOffTrackColor
     }
 }
 

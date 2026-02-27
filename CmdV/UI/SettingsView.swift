@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 struct SettingsView: View {
-    static let fixedWindowWidth: CGFloat = 340
+    static let fixedWindowWidth: CGFloat = 348
 
     @ObservedObject var settings: SettingsStore
     @ObservedObject var permissions: PermissionsService
@@ -28,16 +28,17 @@ struct SettingsView: View {
     private let generalControlPadding = CGFloat(16)
     private let generalNumericRowSpacing: CGFloat = 2
     private let tabSpacing: CGFloat = 5
-    private let tabButtonMinSize: CGFloat = 44
-    private let tabButtonMaxSize: CGFloat = 78
-    private let rootContentInset: CGFloat = 10
-    private let compactCardHeight: CGFloat = 60
+    private let tabButtonMinSize: CGFloat = 56
+    private let tabButtonMaxSize: CGFloat = 92
+    private let rootContentInset: CGFloat = 12
     private let permissionsButtonHeight: CGFloat = 30
     private let hotkeyControlHeight: CGFloat = 34
     private let hotkeyKeyControlMinWidth: CGFloat = 80
-    private let generalControlHeight: CGFloat = 22
-    private let cardContentInset: CGFloat = 12
-    private let settingsLabelFont = Font.system(size: 12, weight: .regular)
+    private let generalControlHeight: CGFloat = 24
+    private let cardContentInset: CGFloat = 14
+    private let settingsLabelFont = Font.system(size: 12.5, weight: .medium)
+    private let paneRadius: CGFloat = 18
+    private let tabPillRadius: CGFloat = 12
     private let developerAddressURL = "https://github.com/rtfdev"
     private let sponsorURL = "https://github.com/sponsors/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
@@ -48,58 +49,13 @@ struct SettingsView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(spacing: tabSpacing) {
-                ForEach(SettingsTab.allCases, id: \.self) { tab in
-                    let isSelected = selectedTab == tab
-                    let iconSize = isSelected ? 16.0 : 15.0
-                    let tabButtonSide = tabButtonLength
-
-                    Button {
-                        selectedTab = tab
-                    } label: {
-                        Image(systemName: tabIcon(tab))
-                            .font(.system(size: iconSize, weight: isSelected ? .semibold : .regular))
-                            .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                            .frame(width: tabButtonSide, height: tabButtonSide)
-                            .background(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .fill(isSelected ? Color.accentColor.opacity(0.2) : Color(nsColor: .windowBackgroundColor).opacity(0.2))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                    .stroke(
-                                        isSelected ? Color.accentColor.opacity(0.5) : Color(nsColor: .separatorColor).opacity(0.32),
-                                        lineWidth: 1
-                                    )
-                            )
-                            .animation(.easeInOut(duration: 0.16), value: isSelected)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(tabTitle(tab))
-                }
-            }
-            .padding(.horizontal, 2)
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: SettingsTabBarWidthPreferenceKey.self,
-                        value: proxy.size.width
-                    )
-                }
-            )
-            .onPreferenceChange(SettingsTabBarWidthPreferenceKey.self) { measuredWidth in
-                guard measuredWidth > 0 else { return }
-                if abs(measuredWidth - tabBarWidth) >= 0.5 {
-                    tabBarWidth = measuredWidth
-                }
-            }
+            settingsTabBar
 
             selectedTabContent
         }
         .padding(.horizontal, rootContentInset)
-        .padding(.top, 14)
-        .padding(.bottom, 8)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
         .frame(width: fixedWindowWidth)
         .onAppear {
             permissions.refreshStatus()
@@ -136,7 +92,71 @@ struct SettingsView: View {
             onContentSizeChange(measuredSize)
         }
         .fixedSize(horizontal: false, vertical: true)
-        .background(settingsBackgroundColor)
+        .background(CmdVTheme.Colors.windowSurface)
+        .clipShape(RoundedRectangle(cornerRadius: paneRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: paneRadius, style: .continuous)
+                .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 4)
+    }
+
+    private var settingsTabBar: some View {
+        HStack(spacing: tabSpacing) {
+            ForEach(SettingsTab.allCases, id: \.self) { tab in
+                let isSelected = selectedTab == tab
+                let iconSize = isSelected ? 15.0 : 14.5
+                let tabButtonSide = tabButtonLength
+
+                Button {
+                    selectedTab = tab
+                } label: {
+                    Image(systemName: tabIcon(tab))
+                        .font(.system(size: iconSize, weight: isSelected ? .semibold : .regular))
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                        .frame(width: tabButtonSide, height: 40)
+                        .background(
+                            RoundedRectangle(cornerRadius: tabPillRadius, style: .continuous)
+                                .fill(isSelected ? Color.accentColor.opacity(0.16) : Color.clear)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: tabPillRadius, style: .continuous)
+                                .stroke(
+                                    isSelected ? Color.accentColor.opacity(0.45) : Color.clear,
+                                    lineWidth: 1
+                                )
+                        )
+                        .contentShape(
+                            RoundedRectangle(cornerRadius: tabPillRadius, style: .continuous)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(tabTitle(tab))
+            }
+        }
+        .padding(5)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(CmdVTheme.Colors.cardSurface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
+        )
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: SettingsTabBarWidthPreferenceKey.self,
+                    value: proxy.size.width
+                )
+            }
+        )
+        .onPreferenceChange(SettingsTabBarWidthPreferenceKey.self) { measuredWidth in
+            guard measuredWidth > 0 else { return }
+            if abs(measuredWidth - tabBarWidth) >= 0.5 {
+                tabBarWidth = measuredWidth
+            }
+        }
     }
 
     private var selectedTabContent: some View {
@@ -485,11 +505,11 @@ struct SettingsView: View {
         )
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(settingsCardBackgroundColor)
+                .fill(CmdVTheme.Colors.cardSurface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color(nsColor: .separatorColor).opacity(0.6), lineWidth: 1)
+                .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
         )
     }
 
@@ -830,27 +850,9 @@ struct SettingsView: View {
         }
     }
 
-    private var settingsBackgroundColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.22, green: 0.22, blue: 0.23, alpha: 1)
-                }
-                return NSColor(srgbRed: 0.95, green: 0.95, blue: 0.96, alpha: 1)
-            }
-        )
-    }
-
-    private var settingsCardBackgroundColor: Color {
-        Color(
-            nsColor: NSColor(name: nil) { appearance in
-                if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                    return NSColor(srgbRed: 0.19, green: 0.19, blue: 0.2, alpha: 1)
-                }
-                return NSColor(srgbRed: 0.98, green: 0.98, blue: 0.99, alpha: 1)
-            }
-        )
-    }
+    private var settingsBackgroundColor: Color { CmdVTheme.Colors.windowSurface }
+    private var settingsSurfaceColor: Color { CmdVTheme.Colors.windowSurface }
+    private var settingsCardBackgroundColor: Color { CmdVTheme.Colors.cardSurface }
 }
 
 private struct InfoHelpButton: View {
