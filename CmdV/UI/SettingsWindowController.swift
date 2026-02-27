@@ -12,6 +12,7 @@ final class SettingsWindowController {
     private let minimumWindowSize = CGSize(width: 340, height: 270)
     private let maximumWindowSize = CGSize(width: 620, height: 540)
     private let fixedWindowWidth = SettingsView.fixedWindowWidth
+    private let fixedWindowHeight: CGFloat = 320
 
     init(
         settings: SettingsStore,
@@ -47,9 +48,10 @@ final class SettingsWindowController {
             onClose: { [weak self] in
                 self?.window?.orderOut(nil)
             },
-            onContentSizeChange: { [weak self] contentSize in
-                self?.applyPreferredSize(for: contentSize)
-            }
+            onContentSizeChange: { _ in
+                // Keep a stable window height to avoid tab/info-popover transition jitter.
+            },
+            onTabSelectionChange: {}
         )
 
         let hostingController = NSHostingController(rootView: rootView)
@@ -74,7 +76,7 @@ final class SettingsWindowController {
             return
         }
 
-        let fallbackSize = CGSize(width: fixedWindowWidth, height: 320)
+        let fallbackSize = CGSize(width: fixedWindowWidth, height: fixedWindowHeight)
         applyPreferredSize(for: fallbackSize, to: window)
     }
 
@@ -83,22 +85,27 @@ final class SettingsWindowController {
             return
         }
 
-        applyPreferredSize(for: contentSize, to: window)
+        let preferredSize = preferredWindowContentSize(for: contentSize)
+        applyPreferredSize(preferredSize, to: window, allowDeferredShrink: true)
     }
 
     private func applyPreferredSize(for contentSize: CGSize, to window: NSWindow) {
+        let preferredSize = preferredWindowContentSize(for: contentSize)
+        applyPreferredSize(preferredSize, to: window, allowDeferredShrink: false)
+    }
+
+    private func applyPreferredSize(
+        _ preferredSize: CGSize,
+        to window: NSWindow,
+        allowDeferredShrink: Bool
+    ) {
+        _ = allowDeferredShrink
+        applyPreferredSizeImmediately(preferredSize, to: window)
+    }
+
+    private func applyPreferredSizeImmediately(_ preferredSize: CGSize, to window: NSWindow) {
         let wasVisible = window.isVisible
         let currentFrame = window.frame
-        let targetWidth = max(
-            minimumWindowSize.width,
-            fixedWindowWidth
-        )
-        let targetHeight = min(
-            maximumWindowSize.height,
-            max(minimumWindowSize.height, contentSize.height)
-        )
-        let preferredSize = CGSize(width: targetWidth, height: targetHeight)
-
         if let lastAppliedContentSize,
            abs(lastAppliedContentSize.width - preferredSize.width) < 0.5,
            abs(lastAppliedContentSize.height - preferredSize.height) < 0.5 {
@@ -108,8 +115,8 @@ final class SettingsWindowController {
         lastAppliedContentSize = preferredSize
 
         window.setContentSize(preferredSize)
-        window.minSize = CGSize(width: targetWidth, height: minimumWindowSize.height)
-        window.maxSize = CGSize(width: targetWidth, height: maximumWindowSize.height)
+        window.minSize = CGSize(width: preferredSize.width, height: preferredSize.height)
+        window.maxSize = CGSize(width: preferredSize.width, height: preferredSize.height)
 
         if !wasVisible {
             window.center()
@@ -117,10 +124,23 @@ final class SettingsWindowController {
         }
 
         let centeredOrigin = NSPoint(
-            x: currentFrame.midX - (targetWidth / 2),
-            y: currentFrame.midY - (targetHeight / 2)
+            x: currentFrame.midX - (preferredSize.width / 2),
+            y: currentFrame.midY - (preferredSize.height / 2)
         )
         window.setFrameOrigin(centeredOrigin)
+    }
+
+    private func preferredWindowContentSize(for contentSize: CGSize) -> CGSize {
+        _ = contentSize
+        let targetWidth = max(
+            minimumWindowSize.width,
+            fixedWindowWidth
+        )
+        let targetHeight = min(
+            maximumWindowSize.height,
+            max(minimumWindowSize.height, fixedWindowHeight)
+        )
+        return CGSize(width: targetWidth, height: targetHeight)
     }
 
     private func clearInitialFieldFocus() {

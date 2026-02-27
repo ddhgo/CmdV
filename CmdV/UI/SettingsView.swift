@@ -11,6 +11,7 @@ struct SettingsView: View {
     let onClearHistory: () -> Void
     let onClose: () -> Void
     let onContentSizeChange: (CGSize) -> Void
+    let onTabSelectionChange: () -> Void
 
     private enum SettingsTab: String, CaseIterable, Hashable {
         case general
@@ -23,6 +24,10 @@ struct SettingsView: View {
     @State private var selectedTab: SettingsTab = .general
     @State private var contentSize: CGSize = .zero
     @State private var tabBarWidth: CGFloat = 0
+    @State private var activeInfoID: String?
+    @State private var infoButtonMetadata: [String: InfoHelpButtonMetadata] = [:]
+    @State private var infoBubbleHeight: CGFloat = 0
+    @State private var lastInfoButtonTapAt = Date.distantPast
     private let fixedWindowWidth = Self.fixedWindowWidth
     private let generalNumericInputWidth: CGFloat = 88
     private let generalControlPadding = CGFloat(16)
@@ -39,6 +44,10 @@ struct SettingsView: View {
     private let settingsLabelFont = Font.system(size: 12.5, weight: .medium)
     private let paneRadius: CGFloat = 18
     private let tabPillRadius: CGFloat = 12
+    private let infoBubbleWidth: CGFloat = 220
+    private let infoBubbleIconHorizontalOffset: CGFloat = 20
+    private let infoBubbleVerticalSpacing: CGFloat = 8
+    private let minimumInfoBubbleHeight: CGFloat = 42
     private let developerAddressURL = "https://github.com/rtfdev"
     private let sponsorURL = "https://github.com/sponsors/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
@@ -91,6 +100,22 @@ struct SettingsView: View {
             contentSize = measuredSize
             onContentSizeChange(measuredSize)
         }
+        .onPreferenceChange(InfoHelpButtonPreferenceKey.self) { values in
+            infoButtonMetadata = values
+        }
+        .onPreferenceChange(InfoHelpBubbleHeightPreferenceKey.self) { measuredHeight in
+            infoBubbleHeight = measuredHeight
+        }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                guard Date().timeIntervalSince(lastInfoButtonTapAt) >= 0.15 else {
+                    return
+                }
+                activeInfoID = nil
+            }
+        )
+        .coordinateSpace(name: "SettingsViewSpace")
         .fixedSize(horizontal: false, vertical: true)
         .background(CmdVTheme.Colors.windowSurface)
         .clipShape(RoundedRectangle(cornerRadius: paneRadius, style: .continuous))
@@ -98,6 +123,17 @@ struct SettingsView: View {
             RoundedRectangle(cornerRadius: paneRadius, style: .continuous)
                 .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
         )
+        .overlay(alignment: .topLeading) {
+            if let activeInfoID,
+               let metadata = infoButtonMetadata[activeInfoID] {
+                InfoHelpBubble(message: metadata.message, width: infoBubbleWidth)
+                    .offset(
+                        x: infoBubbleX(for: metadata.frame),
+                        y: infoBubbleY(for: metadata.frame)
+                    )
+                    .zIndex(2)
+            }
+        }
         .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 4)
     }
 
@@ -109,7 +145,12 @@ struct SettingsView: View {
                 let tabButtonSide = tabButtonLength
 
                 Button {
+                    guard selectedTab != tab else {
+                        return
+                    }
+                    activeInfoID = nil
                     selectedTab = tab
+                    onTabSelectionChange()
                 } label: {
                     Image(systemName: tabIcon(tab))
                         .font(.system(size: iconSize, weight: isSelected ? .semibold : .regular))
@@ -519,12 +560,17 @@ struct SettingsView: View {
         infoPlacementLeading: Bool = false,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        let infoID = infoMessage.map { "\(label)|\($0)|\(infoPlacementLeading)" }
+
+        return HStack(alignment: .center, spacing: 12) {
             HStack(spacing: 4) {
-                if let infoMessage {
-                    if infoPlacementLeading {
-                        InfoHelpButton(message: infoMessage)
-                    }
+                if let infoMessage, let infoID, infoPlacementLeading {
+                    InfoHelpButton(
+                        message: infoMessage,
+                        infoID: infoID,
+                        activeInfoID: $activeInfoID,
+                        onTap: { lastInfoButtonTapAt = Date() }
+                    )
                 }
 
                 Text(label)
@@ -542,8 +588,13 @@ struct SettingsView: View {
                         }
                     )
 
-                if let infoMessage, !infoPlacementLeading {
-                    InfoHelpButton(message: infoMessage)
+                if let infoMessage, let infoID, !infoPlacementLeading {
+                    InfoHelpButton(
+                        message: infoMessage,
+                        infoID: infoID,
+                        activeInfoID: $activeInfoID,
+                        onTap: { lastInfoButtonTapAt = Date() }
+                    )
                 }
             }
             .frame(width: labelColumnWidth, alignment: .leading)
@@ -638,6 +689,31 @@ struct SettingsView: View {
         let count = CGFloat(tabButtonCount)
         let spacingTotal = tabSpacing * (count - 1)
         return max(tabButtonMinSize, min(tabButtonMaxSize, (tabBarWidth - spacingTotal) / count))
+    }
+
+    private func infoBubbleX(for frame: CGRect) -> CGFloat {
+        let preferred = frame.midX - infoBubbleIconHorizontalOffset
+        let minimum = rootContentInset
+        let maximum = fixedWindowWidth - rootContentInset - infoBubbleWidth
+        return min(max(minimum, preferred), max(minimum, maximum))
+    }
+
+    private func infoBubbleY(for frame: CGRect) -> CGFloat {
+        let bubbleHeight = max(minimumInfoBubbleHeight, infoBubbleHeight)
+        let viewHeight = max(contentSize.height, 320)
+        let minimum = rootContentInset
+        let maximum = max(minimum, viewHeight - rootContentInset - bubbleHeight)
+        let preferredBelow = frame.maxY + infoBubbleVerticalSpacing
+        if preferredBelow <= maximum {
+            return preferredBelow
+        }
+
+        let preferredAbove = frame.minY - infoBubbleVerticalSpacing - bubbleHeight
+        if preferredAbove >= minimum {
+            return preferredAbove
+        }
+
+        return min(max(preferredBelow, minimum), maximum)
     }
 
     private struct SettingsTabBarWidthPreferenceKey: PreferenceKey {
@@ -857,7 +933,9 @@ struct SettingsView: View {
 
 private struct InfoHelpButton: View {
     let message: String
-    @State private var isShowingHelp = false
+    let infoID: String
+    @Binding var activeInfoID: String?
+    let onTap: () -> Void
 
     var body: some View {
         Image(systemName: "info.circle.fill")
@@ -866,19 +944,64 @@ private struct InfoHelpButton: View {
             .frame(width: 12, height: 12)
             .contentShape(Circle())
             .onTapGesture {
-                isShowingHelp.toggle()
+                onTap()
+                if activeInfoID == infoID {
+                    activeInfoID = nil
+                } else {
+                    activeInfoID = infoID
+                }
             }
-            .popover(isPresented: $isShowingHelp) {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.leading)
-                    .padding(10)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: InfoHelpButtonPreferenceKey.self,
+                        value: [
+                            infoID: InfoHelpButtonMetadata(
+                                frame: proxy.frame(in: .named("SettingsViewSpace")),
+                                message: message
+                            )
+                        ]
+                    )
+                }
+            )
             .help(message)
             .accessibilityLabel("설명 보기")
             .accessibilityValue(message)
+    }
+}
+
+private struct InfoHelpBubble: View {
+    let message: String
+    let width: CGFloat
+
+    var body: some View {
+        Text(message)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .multilineTextAlignment(.leading)
+            .lineLimit(nil)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(width: width, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(CmdVTheme.Colors.cardSurface.opacity(0.98))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.14), radius: 8, x: 0, y: 3)
+            .allowsHitTesting(false)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: InfoHelpBubbleHeightPreferenceKey.self,
+                        value: proxy.size.height
+                    )
+                }
+            )
     }
 }
 
@@ -894,6 +1017,27 @@ private struct SettingsViewContentSizePreferenceKey: PreferenceKey {
     static var defaultValue: CGSize = .zero
 
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
+    }
+}
+
+private struct InfoHelpButtonMetadata: Equatable {
+    let frame: CGRect
+    let message: String
+}
+
+private struct InfoHelpButtonPreferenceKey: PreferenceKey {
+    static var defaultValue: [String: InfoHelpButtonMetadata] = [:]
+
+    static func reduce(value: inout [String: InfoHelpButtonMetadata], nextValue: () -> [String: InfoHelpButtonMetadata]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, new in new })
+    }
+}
+
+private struct InfoHelpBubbleHeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = nextValue()
     }
 }
