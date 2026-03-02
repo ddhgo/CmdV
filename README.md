@@ -1,5 +1,9 @@
 # CmdV
 
+<p align="center">
+  <img src="CmdV/Resources/CmdVMainLogo.png" alt="CmdV Logo" width="180" />
+</p>
+
 **macOS clipboard history manager — inspired by Windows Win+V.**
 Copy anything. Come back to it anytime.
 
