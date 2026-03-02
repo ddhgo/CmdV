@@ -15,19 +15,28 @@ CmdV lives in your menu bar and silently keeps a history of everything you copy 
 
 No more losing that thing you copied two pastes ago.
 
-### Download
-
-→ [Download latest release](https://github.com/ddhgo/CmdV/releases/latest)
+### Installation
 
 **Requirements:** macOS 13.0 or later
 
-### Getting Started
+#### 1) Install from release (recommended)
 
-1. Download and open `CmdV.dmg`
-2. Drag **CmdV** to your Applications folder
-3. Launch CmdV — it appears in the menu bar (⌘✓)
-4. Grant **Accessibility permission** when prompted *(required for auto-paste)*
-5. Press `Option + V` to open your clipboard history
+1. Download `CmdV.dmg` from [latest release](https://github.com/ddhgo/CmdV/releases/latest)
+2. Open the DMG and drag **CmdV** to your Applications folder
+3. Launch CmdV from Applications
+
+#### 2) Build from source
+
+1. Clone this repository
+2. Open `CmdV.xcodeproj` in Xcode
+3. Select the `CmdV` target and run (`Cmd + R`)
+
+### Usage
+
+1. Launch CmdV — it appears in the menu bar (⌘✓)
+2. Grant **Accessibility permission** when prompted *(required for auto-paste)*
+3. Press `Option + V` to open clipboard history
+4. Search, select an item, and press `Enter` to paste
 
 ### Features
 
@@ -97,19 +106,28 @@ CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지 
 
 두 번 복사하느라 낭비하는 시간, 이제 없어도 됩니다.
 
-### 다운로드
-
-→ [최신 버전 다운로드](https://github.com/ddhgo/CmdV/releases/latest)
+### 설치
 
 **요구 사항:** macOS 13.0 이상
 
-### 시작하기
+#### 1) 릴리스로 설치 (권장)
 
-1. `CmdV.dmg`를 다운로드하고 열기
-2. **CmdV**를 Applications 폴더로 드래그
-3. CmdV 실행 — 메뉴바에 아이콘이 나타납니다 (⌘✓)
-4. 요청 시 **손쉬운 사용(Accessibility) 권한** 허용 *(자동 붙여넣기에 필요)*
-5. `Option + V`를 눌러 클립보드 히스토리 열기
+1. [최신 릴리스](https://github.com/ddhgo/CmdV/releases/latest)에서 `CmdV.dmg` 다운로드
+2. DMG를 열고 **CmdV**를 Applications 폴더로 드래그
+3. Applications에서 CmdV 실행
+
+#### 2) 소스에서 빌드
+
+1. 이 저장소를 클론
+2. Xcode에서 `CmdV.xcodeproj` 열기
+3. `CmdV` 타깃 선택 후 실행 (`Cmd + R`)
+
+### 사용법
+
+1. CmdV 실행 — 메뉴바에 아이콘이 나타납니다 (⌘✓)
+2. 요청 시 **손쉬운 사용(Accessibility) 권한** 허용 *(자동 붙여넣기에 필요)*
+3. `Option + V`를 눌러 클립보드 히스토리 열기
+4. 검색 후 항목을 선택하고 `Enter`로 붙여넣기
 
 ### 주요 기능
 
