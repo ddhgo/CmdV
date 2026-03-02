@@ -1,191 +1,174 @@
 # CmdV
 
-CmdV is a production-focused macOS clipboard history app inspired by Windows Win+V.
+**macOS clipboard history manager — inspired by Windows Win+V.**
+Copy anything. Come back to it anytime.
 
-It runs as a menu bar app, captures text and images, and lets you quickly re-paste previous clipboard entries with a global hotkey.
+[English](#english) · [한국어](#한국어)
 
-## MVP Features
+---
 
-- Menu bar app with status icon and controls.
-- Global hotkey (default `Option+V`) to toggle popup.
-- Clipboard history for:
-  - Plain text (`public.utf8-plain-text` via `.string`)
-  - Images (`.png` / `.tiff` converted and stored as PNG)
-- Search/filter in popup.
-- Pin/favorite important items so they stay at top.
-- Keyboard controls:
-  - Up/Down: selection
-  - Enter: paste selected item
-  - Cmd+Enter: copy selected item only (no auto-paste)
-  - Cmd+P: pin/unpin selected item
-  - Esc: close popup
-  - Cmd+F: focus search
-  - Delete/Backspace: delete selected history item
-- Privacy controls:
-  - Pause recording
-  - Clear history
-  - Excluded app bundle identifiers (settings)
-- Persistence:
-  - SQLite metadata database
-  - Image files stored by content hash under Application Support
-- Capacity limit (default 200, configurable).
+## English
 
-## Architecture
+### What is CmdV?
 
-- UI: SwiftUI + AppKit bridge (status bar, floating panel, global hotkey).
-- Clipboard monitor: `NSPasteboard.general.changeCount` polling.
-- Persistence: native SQLite (`SQLite3`) + hashed image files on disk.
-- Global hotkey: Carbon `RegisterEventHotKey`.
-- Auto-paste: sets selected content to pasteboard, then sends Cmd+V via `CGEvent`.
+CmdV lives in your menu bar and silently keeps a history of everything you copy — text, images, and more. Whenever you need something you copied earlier, just press a hotkey and pick it from the list.
 
-## Build and Run (Xcode)
+No more losing that thing you copied two pastes ago.
 
-1. Open `CmdV.xcodeproj` in Xcode.
-2. Select the `CmdV` target.
-3. Build and run (`Cmd+R`).
+### Download
 
-Notes:
-- The project targets macOS 13.0+.
-- MVP is intentionally non-sandboxed to keep global hotkey and auto-paste behavior reliable.
+→ [Download latest release](https://github.com/ddhgo/CmdV/releases/latest)
 
-### Stable local restart command
+**Requirements:** macOS 13.0 or later
 
-To avoid launching stale builds, use one deterministic command for local testing:
+### Getting Started
 
-```bash
-./scripts/restart_app.sh
-```
+1. Download and open `CmdV.dmg`
+2. Drag **CmdV** to your Applications folder
+3. Launch CmdV — it appears in the menu bar (⌘✓)
+4. Grant **Accessibility permission** when prompted *(required for auto-paste)*
+5. Press `Option + V` to open your clipboard history
 
-This command:
-- builds into `build/DerivedData`
-- kills any running `CmdV` process
-- launches `build/DerivedData/Build/Products/Debug/CmdV.app` directly
+### Features
 
-Optional configuration (Release):
+- **Clipboard history** — automatically captures text and images as you copy
+- **Instant search** — type to filter through your history
+- **Pin items** — keep important clips at the top so they never get pushed out
+- **Two tabs** — switch between All items and Favorites
+- **Fully keyboard-driven** — open, search, select, and paste without touching the mouse
+- **Privacy controls** — pause recording anytime, clear history, exclude specific apps
+- **Configurable** — change hotkey, history capacity, polling interval, and more
+- **No telemetry** — nothing leaves your Mac. Ever.
 
-```bash
-./scripts/restart_app.sh Release
-```
+### Keyboard Shortcuts
 
-## Automated Tests
+| Key | Action |
+|-----|--------|
+| `Option + V` | Open / close clipboard history |
+| `↑ / ↓` | Navigate items |
+| `Enter` | Paste selected item |
+| `Cmd + Enter` | Copy to clipboard (no auto-paste) |
+| `Cmd + P` | Pin / unpin selected item |
+| `Cmd + F` | Focus search |
+| `Delete` | Remove selected item from history |
+| `Esc` | Close |
 
-- Unit tests target: `CmdVTests` (XCTest)
-- Run in Xcode: Product -> Test
-- Run in terminal:
+> All shortcuts are customizable in Settings.
 
-```bash
-xcodebuild -project "CmdV.xcodeproj" -scheme "CmdV" -configuration Debug -destination 'platform=macOS' test
-```
+### Permissions
 
-Current coverage focus:
-- `SettingsStore` clamping/parsing/hotkey fallback logic
-- `SQLiteHistoryDatabase` insert/fetch/trim/clear behavior
+**Accessibility** — Required for auto-paste. CmdV uses this to send `Cmd+V` after you select an item.
+If you skip this, CmdV still copies the item to your clipboard — you just paste manually.
 
-CI workflow:
-- `.github/workflows/ci.yml` (build + test on macOS)
+→ System Settings → Privacy & Security → Accessibility
 
-## Packaging (Internal DMG)
+### Privacy
 
-Create an internal test DMG with:
+- All data is stored locally on your Mac
+- Stored at: `~/Library/Application Support/CmdV/`
+- No network requests, no analytics, no tracking
 
-```bash
-./scripts/clean_build_artifacts.sh --dry-run
-./scripts/clean_build_artifacts.sh
-./scripts/create_dmg.sh --configuration Debug
-```
+### Troubleshooting
 
-Useful options:
+**Hotkey doesn't work**
+Another app may be using the same shortcut. Change it in CmdV Settings → Keyboard Shortcuts.
 
-```bash
-./scripts/create_dmg.sh --configuration Debug --derived-data build/DerivedData --output dist
-./scripts/create_dmg.sh --skip-build --configuration Debug --derived-data build/DerivedData --output dist
-./scripts/create_dmg.sh --configuration Release --allow-insecure-release
-```
+**Item selected but not pasted automatically**
+Grant Accessibility permission in System Settings → Privacy & Security → Accessibility.
 
-Default output:
-- `dist/CmdV-<version>.dmg`
-- Built app (Release): `build/DerivedData/Build/Products/Release/CmdV.app`
+**Clipboard entries not showing up**
+Check that recording isn't paused (menu bar icon → Resume).
 
-Distribution note:
-- `create_dmg.sh` is for internal test sharing.
-- External distribution must use `scripts/release_signed_notarized_dmg.sh` (Developer ID + notarization).
+### Support
 
-## Signed Release (Developer ID + Notarization)
+Found a bug or have a feature request?
+→ [Open an issue](https://github.com/ddhgo/CmdV/issues/new/choose)
 
-Production release flow script:
+Like CmdV? Support development:
+→ [Buy me a coffee](https://buymeacoffee.com/ddhgo)
 
-```bash
-APPLE_TEAM_ID="ABCDE12345" \
-APP_SIGN_IDENTITY="Developer ID Application: Your Name (ABCDE12345)" \
-NOTARY_PROFILE="CmdVNotary" \
-scripts/release_signed_notarized_dmg.sh
-```
+---
 
-Notary profile one-time setup:
+## 한국어
 
-```bash
-APPLE_ID="<YOUR_APPLE_ID>" \
-APPLE_TEAM_ID="<YOUR_TEAM_ID>" \
-APPLE_APP_SPECIFIC_PASSWORD="<APP_SPECIFIC_PASSWORD>" \
-scripts/setup_notary_profile.sh --profile CmdVNotary
-```
+### CmdV가 뭔가요?
 
-Security note:
-- Do not paste real credentials directly into shell history.
-- Prefer `NOTARY_PROFILE` after one-time keychain setup.
+CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지 등 — 을 자동으로 기록합니다. 이전에 복사했던 내용이 필요할 때 단축키 하나로 목록을 열어 바로 붙여넣을 수 있어요.
 
-Release docs:
-- `docs/RELEASE.md`
+두 번 복사하느라 낭비하는 시간, 이제 없어도 됩니다.
 
-GitHub Actions release workflow:
-- `.github/workflows/release.yml`
+### 다운로드
 
-## Permissions
+→ [최신 버전 다운로드](https://github.com/ddhgo/CmdV/releases/latest)
 
-### Accessibility (required for auto-paste)
+**요구 사항:** macOS 13.0 이상
 
-CmdV needs Accessibility permission to synthesize `Cmd+V` after you choose an item.
+### 시작하기
 
-If permission is missing:
-- CmdV still copies the selected item to clipboard.
-- You can manually paste with `Cmd+V`.
-- The popup shows guidance and buttons to request/open settings.
+1. `CmdV.dmg`를 다운로드하고 열기
+2. **CmdV**를 Applications 폴더로 드래그
+3. CmdV 실행 — 메뉴바에 아이콘이 나타납니다 (⌘✓)
+4. 요청 시 **손쉬운 사용(Accessibility) 권한** 허용 *(자동 붙여넣기에 필요)*
+5. `Option + V`를 눌러 클립보드 히스토리 열기
 
-Path in System Settings:
-- Privacy & Security -> Accessibility
+### 주요 기능
 
-### Input Monitoring
+- **클립보드 히스토리** — 복사할 때마다 텍스트와 이미지를 자동으로 기록
+- **빠른 검색** — 입력하면 바로 필터링
+- **핀 고정** — 중요한 항목을 목록 상단에 고정, 밀려날 걱정 없음
+- **두 가지 탭** — 전체 / 즐겨찾기 전환
+- **완전한 키보드 조작** — 마우스 없이 열고, 검색하고, 붙여넣기까지
+- **프라이버시 제어** — 언제든 기록 일시정지, 히스토리 삭제, 특정 앱 제외
+- **세부 설정** — 단축키, 히스토리 용량, 폴링 주기 등 변경 가능
+- **완전한 로컬 저장** — 어떤 데이터도 외부로 나가지 않습니다
 
-Current implementation only sends events and does not read raw keyboard input globally.
-Accessibility is the primary required permission for auto-paste.
+### 단축키
 
-## Data Storage
+| 키 | 동작 |
+|----|------|
+| `Option + V` | 클립보드 히스토리 열기 / 닫기 |
+| `↑ / ↓` | 항목 이동 |
+| `Enter` | 선택한 항목 붙여넣기 |
+| `Cmd + Enter` | 클립보드에 복사만 (자동 붙여넣기 없음) |
+| `Cmd + P` | 선택한 항목 핀 고정 / 해제 |
+| `Cmd + F` | 검색창 포커스 |
+| `Delete` | 선택한 항목 삭제 |
+| `Esc` | 닫기 |
 
-Stored under:
-- `~/Library/Application Support/CmdV/history.sqlite3`
-- `~/Library/Application Support/CmdV/Images/*.png`
+> 모든 단축키는 설정에서 변경할 수 있습니다.
 
-No telemetry, no analytics, and no network calls are included.
+### 권한 안내
 
-## Troubleshooting
+**손쉬운 사용 (Accessibility)** — 자동 붙여넣기에 필요합니다. 항목 선택 후 `Cmd+V`를 자동으로 입력하는 데 사용됩니다.
+권한을 허용하지 않아도 클립보드에 복사는 되며, 수동으로 붙여넣기(`Cmd+V`)하면 됩니다.
 
-- Hotkey does not trigger:
-  - Check if another app already owns the same shortcut.
-  - Change the hotkey in CmdV Settings.
-- Item selected but not auto-pasted:
-  - Grant Accessibility permission.
-  - Confirm CmdV is enabled under Accessibility.
-- Clipboard entries not appearing:
-  - Ensure recording is not paused.
-  - Check exclusion list in Settings.
+→ 시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용
 
-## v1.1 Roadmap
+### 개인정보 보호
 
-- Pin/favorite items.
-- More robust rich text/HTML handling.
-- Optional iCloud sync.
-- Better item actions (copy only, preview pane, quick pin).
+- 모든 데이터는 내 Mac에만 저장됩니다
+- 저장 위치: `~/Library/Application Support/CmdV/`
+- 네트워크 요청, 분석, 추적 없음
 
-## QA
+### 문제 해결
 
-- Manual acceptance and edge-case checklist: `docs/QA_CHECKLIST.md`
+**단축키가 작동하지 않아요**
+다른 앱이 동일한 단축키를 사용 중일 수 있습니다. CmdV 설정 → 단축키에서 변경해보세요.
+
+**항목을 선택했는데 자동으로 붙여넣기가 안 돼요**
+시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용에서 CmdV에 권한을 허용해주세요.
+
+**복사한 항목이 목록에 안 나타나요**
+기록이 일시정지 상태인지 확인해보세요 (메뉴바 아이콘 → 재개).
+
+### 지원
+
+버그 제보 또는 기능 제안:
+→ [이슈 등록](https://github.com/ddhgo/CmdV/issues/new/choose)
+
+CmdV가 유용하셨나요? 개발을 응원해주세요:
+→ [커피 한 잔 사주기](https://buymeacoffee.com/ddhgo)
+
+---
+
+<sub>Made by [ddhgo](https://github.com/ddhgo)</sub>
