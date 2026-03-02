@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import SQLite3
 
 private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
@@ -11,6 +12,7 @@ enum SQLiteHistoryDatabaseError: Error {
 
 final class SQLiteHistoryDatabase {
     private var db: OpaquePointer?
+    private let logger = Logger(subsystem: "com.cmdv", category: "SQLite")
 
     init(databaseURL: URL) throws {
         let flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX
@@ -103,6 +105,7 @@ final class SQLiteHistoryDatabase {
             LIMIT ?;
             """
         ) else {
+            logger.error("fetchRecentItems: prepare failed, returning empty list")
             return []
         }
 
@@ -260,6 +263,7 @@ final class SQLiteHistoryDatabase {
             WHERE id = ?;
             """
         ) else {
+            logger.error("bumpItemToTop: prepare failed for itemID \(itemID)")
             return
         }
 
@@ -267,7 +271,10 @@ final class SQLiteHistoryDatabase {
         sqlite3_bind_double(statement, 1, createdAt.timeIntervalSince1970)
         bindOptionalString(sourceBundleID, to: 2, in: statement)
         sqlite3_bind_int64(statement, 3, itemID)
-        _ = sqlite3_step(statement)
+        if sqlite3_step(statement) != SQLITE_DONE {
+            let errorMessage = String(cString: sqlite3_errmsg(db))
+            logger.error("bumpItemToTop: step failed for itemID \(itemID) — \(errorMessage, privacy: .public)")
+        }
     }
 
     @discardableResult
@@ -283,6 +290,7 @@ final class SQLiteHistoryDatabase {
             VALUES ('text', ?, NULL, ?, ?, ?);
             """
         ) else {
+            logger.error("insertText: prepare failed for hash \(hash, privacy: .public)")
             return -1
         }
 
@@ -294,6 +302,8 @@ final class SQLiteHistoryDatabase {
         bindOptionalString(sourceBundleID, to: 4, in: statement)
 
         guard sqlite3_step(statement) == SQLITE_DONE else {
+            let errorMessage = String(cString: sqlite3_errmsg(db))
+            logger.error("insertText: step failed — \(errorMessage, privacy: .public)")
             return -1
         }
 
@@ -313,6 +323,7 @@ final class SQLiteHistoryDatabase {
             VALUES ('image', NULL, ?, ?, ?, ?);
             """
         ) else {
+            logger.error("insertImage: prepare failed for hash \(hash, privacy: .public)")
             return -1
         }
 
@@ -324,6 +335,8 @@ final class SQLiteHistoryDatabase {
         bindOptionalString(sourceBundleID, to: 4, in: statement)
 
         guard sqlite3_step(statement) == SQLITE_DONE else {
+            let errorMessage = String(cString: sqlite3_errmsg(db))
+            logger.error("insertImage: step failed — \(errorMessage, privacy: .public)")
             return -1
         }
 
@@ -343,6 +356,7 @@ final class SQLiteHistoryDatabase {
             VALUES ('file', ?, NULL, ?, ?, ?);
             """
         ) else {
+            logger.error("insertFile: prepare failed for hash \(hash, privacy: .public)")
             return -1
         }
 
@@ -354,6 +368,8 @@ final class SQLiteHistoryDatabase {
         bindOptionalString(sourceBundleID, to: 4, in: statement)
 
         guard sqlite3_step(statement) == SQLITE_DONE else {
+            let errorMessage = String(cString: sqlite3_errmsg(db))
+            logger.error("insertFile: step failed — \(errorMessage, privacy: .public)")
             return -1
         }
 
@@ -364,36 +380,48 @@ final class SQLiteHistoryDatabase {
         let removedImagePath = imagePathForItem(id: id)
 
         guard let statement = prepare("DELETE FROM history_items WHERE id = ?;") else {
+            logger.error("deleteItem: prepare failed for id \(id)")
             return removedImagePath
         }
 
         defer { sqlite3_finalize(statement) }
         sqlite3_bind_int64(statement, 1, id)
-        _ = sqlite3_step(statement)
+        if sqlite3_step(statement) != SQLITE_DONE {
+            let errorMessage = String(cString: sqlite3_errmsg(db))
+            logger.error("deleteItem: step failed for id \(id) — \(errorMessage, privacy: .public)")
+        }
 
         return removedImagePath
     }
 
     func setPinned(itemID: Int64, isPinned: Bool) {
         guard let statement = prepare("UPDATE history_items SET is_pinned = ? WHERE id = ?;") else {
+            logger.error("setPinned: prepare failed for itemID \(itemID)")
             return
         }
 
         defer { sqlite3_finalize(statement) }
         sqlite3_bind_int(statement, 1, isPinned ? 1 : 0)
         sqlite3_bind_int64(statement, 2, itemID)
-        _ = sqlite3_step(statement)
+        if sqlite3_step(statement) != SQLITE_DONE {
+            let errorMessage = String(cString: sqlite3_errmsg(db))
+            logger.error("setPinned: step failed for itemID \(itemID) — \(errorMessage, privacy: .public)")
+        }
     }
 
     func setFavorited(itemID: Int64, isFavorited: Bool) {
         guard let statement = prepare("UPDATE history_items SET is_favorited = ? WHERE id = ?;") else {
+            logger.error("setFavorited: prepare failed for itemID \(itemID)")
             return
         }
 
         defer { sqlite3_finalize(statement) }
         sqlite3_bind_int(statement, 1, isFavorited ? 1 : 0)
         sqlite3_bind_int64(statement, 2, itemID)
-        _ = sqlite3_step(statement)
+        if sqlite3_step(statement) != SQLITE_DONE {
+            let errorMessage = String(cString: sqlite3_errmsg(db))
+            logger.error("setFavorited: step failed for itemID \(itemID) — \(errorMessage, privacy: .public)")
+        }
     }
 
     func clearFavoritedItems() {
@@ -417,11 +445,18 @@ final class SQLiteHistoryDatabase {
                     removedPaths.append(path)
                 }
             }
+        } else {
+            logger.error("clearAll: prepare failed for image_path SELECT")
         }
 
         if let statement = prepare("DELETE FROM history_items;") {
             defer { sqlite3_finalize(statement) }
-            _ = sqlite3_step(statement)
+            if sqlite3_step(statement) != SQLITE_DONE {
+                let errorMessage = String(cString: sqlite3_errmsg(db))
+                logger.error("clearAll: DELETE step failed — \(errorMessage, privacy: .public)")
+            }
+        } else {
+            logger.error("clearAll: prepare failed for DELETE")
         }
 
         return removedPaths
@@ -445,11 +480,18 @@ final class SQLiteHistoryDatabase {
                     removedPaths.append(path)
                 }
             }
+        } else {
+            logger.error("clearNonFavoritedItems: prepare failed for image_path SELECT")
         }
 
         if let statement = prepare("DELETE FROM history_items WHERE is_favorited = 0;") {
             defer { sqlite3_finalize(statement) }
-            _ = sqlite3_step(statement)
+            if sqlite3_step(statement) != SQLITE_DONE {
+                let errorMessage = String(cString: sqlite3_errmsg(db))
+                logger.error("clearNonFavoritedItems: DELETE step failed — \(errorMessage, privacy: .public)")
+            }
+        } else {
+            logger.error("clearNonFavoritedItems: prepare failed for DELETE")
         }
 
         return removedPaths
@@ -487,6 +529,8 @@ final class SQLiteHistoryDatabase {
                     removedPaths.append(path)
                 }
             }
+        } else {
+            logger.error("trimToCapacity: prepare failed for image_path SELECT")
         }
 
         if let statement = prepare(
@@ -504,7 +548,12 @@ final class SQLiteHistoryDatabase {
         ) {
             defer { sqlite3_finalize(statement) }
             sqlite3_bind_int(statement, 1, Int32(capacity))
-            _ = sqlite3_step(statement)
+            if sqlite3_step(statement) != SQLITE_DONE {
+                let errorMessage = String(cString: sqlite3_errmsg(db))
+                logger.error("trimToCapacity: DELETE step failed — \(errorMessage, privacy: .public)")
+            }
+        } else {
+            logger.error("trimToCapacity: prepare failed for DELETE")
         }
 
         return removedPaths
@@ -586,6 +635,8 @@ final class SQLiteHistoryDatabase {
             return statement
         }
 
+        let errorMessage = String(cString: sqlite3_errmsg(db))
+        logger.error("SQLite prepare failed: \(errorMessage, privacy: .public) — SQL: \(sql, privacy: .public)")
         return nil
     }
 }

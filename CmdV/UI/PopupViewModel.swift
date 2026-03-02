@@ -195,6 +195,13 @@ final class PopupViewModel: ObservableObject {
         markSelectionExplicit()
     }
 
+    /// Returns the list index that should receive focus after `itemID` is deleted
+    /// from `items`.
+    ///
+    /// Priority:
+    /// 1. The item immediately *below* the deleted row (same visual position).
+    /// 2. The item immediately *above* when the deleted row was the last one.
+    /// 3. `nil` when the list will be empty after deletion.
     private func fallbackSelectionIndex(afterDeleting itemID: Int64, from items: [ClipboardItem]) -> Int? {
         guard let deletedIndex = items.firstIndex(where: { $0.id == itemID }) else {
             return nil
@@ -298,6 +305,14 @@ final class PopupViewModel: ObservableObject {
         showsPermissionBanner = false
     }
 
+    /// Reconciles `selectedItemID` with the current `filteredItems` list.
+    ///
+    /// Called whenever the item list or search query changes so the highlighted
+    /// row stays consistent.  If a delete-pending state exists it is resolved
+    /// first: the stored target ID is preferred, falling back to the stored
+    /// index, and finally to the first visible item.  When `forceSelectFirst`
+    /// is `true` (e.g. after a tab switch) the first item is always selected
+    /// regardless of existing selection state.
     private func ensureSelectionValid(forceSelectFirst: Bool = false) {
         let visibleItems = filteredItems
 
@@ -344,10 +359,20 @@ final class PopupViewModel: ObservableObject {
         selectedItemID = visibleItems.first?.id
     }
 
+    /// Increments `explicitSelectionToken` to signal that the selection was
+    /// driven by a keyboard or row action rather than an implicit list update.
+    ///
+    /// `PopupContentView` observes this token and enables the fallback highlight
+    /// path (`allowSelectedFallbackHighlight`) only after an explicit action,
+    /// preventing spurious scroll jumps when the list refreshes in the background.
     private func markSelectionExplicit() {
         explicitSelectionToken += 1
     }
 
+    /// Resets all pending-delete selection state and clears the current
+    /// selection.  Called before bulk-clear operations (e.g. "Clear All") so
+    /// `ensureSelectionValid` starts from a clean slate rather than trying to
+    /// restore a stale post-delete position.
     private func clearPendingSelection() {
         pendingSelectionAfterDeleteID = nil
         pendingSelectionAfterDeleteIndex = nil

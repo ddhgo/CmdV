@@ -245,6 +245,12 @@ struct HistoryRowView: View {
         CmdVTheme.Colors.rowSelectedStroke
     }
 
+    /// Whether the Share menu item should appear for this item.
+    ///
+    /// Share requires actual content: non-empty text, a stored image file, or
+    /// at least one resolved file URL.  Items without content (e.g. an image
+    /// whose file has been deleted) are excluded to avoid presenting a share
+    /// sheet that would immediately fail.
     private var hasShareAction: Bool {
         switch item.type {
         case .text:
@@ -256,6 +262,11 @@ struct HistoryRowView: View {
         }
     }
 
+    /// Whether the Open menu item should appear for this item.
+    ///
+    /// Only file-type items with at least one resolvable URL support "Open in
+    /// Finder / default app".  Text and image items are excluded because they
+    /// have no meaningful file-system location to open.
     private var hasOpenAction: Bool {
         item.type == .file && !item.fileURLs.isEmpty
     }
@@ -385,6 +396,13 @@ private final class SecondaryClickCaptureNSView: NSView {
         super.mouseMoved(with: event)
     }
 
+    /// Re-evaluates whether the pointer is inside this view by converting the
+    /// current mouse location from window coordinates to view-local bounds.
+    ///
+    /// Called after a context menu closes (via `NSMenu.didEndTrackingNotification`)
+    /// and on `mouseMoved` events.  These two sites cover the case where the
+    /// system skips `mouseEntered`/`mouseExited` events while a menu is
+    /// tracking, leaving `isPointerInside` stale after the menu dismisses.
     private func refreshHoverStateFromPointer() {
         guard let window else {
             setHover(false)
@@ -396,6 +414,13 @@ private final class SecondaryClickCaptureNSView: NSView {
         setHover(bounds.contains(locationInView))
     }
 
+    /// Updates the stored hover state and notifies the callback only when the
+    /// state actually changes.
+    ///
+    /// The guard prevents redundant `onHoverChanged` calls when the tracking
+    /// area fires multiple enter/exit events in quick succession (e.g. when
+    /// the view is scrolled under the pointer or when `refreshHoverStateFromPointer`
+    /// is called from both `mouseMoved` and `NSMenu.didEndTrackingNotification`).
     private func setHover(_ isInside: Bool) {
         guard isPointerInside != isInside else {
             return

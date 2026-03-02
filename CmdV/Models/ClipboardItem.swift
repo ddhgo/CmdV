@@ -20,6 +20,12 @@ struct ClipboardItem: Identifiable, Hashable {
 }
 
 extension ClipboardItem {
+    /// Deserialises the file URLs stored for this item.
+    ///
+    /// For `.file` items `textContent` holds a JSON-encoded `[String]` of
+    /// absolute POSIX paths (written by `serializeFileURLs(_:)`).  This
+    /// property decodes those paths and filters out any that no longer exist
+    /// on disk, so callers always receive only resolvable URLs.
     var fileURLs: [URL] {
         guard type == .file, let textContent else {
             return []
@@ -39,6 +45,16 @@ extension ClipboardItem {
         }
     }
 
+    /// Returns a human-readable app name for the clipboard source, or `nil` if
+    /// no source bundle ID was recorded.
+    ///
+    /// Lookup chain (first non-empty value wins):
+    /// 1. `CFBundleDisplayName` from the app's `Info.plist`
+    /// 2. `CFBundleName` from the app's `Info.plist`
+    /// 3. The app file name without extension (e.g. `"Safari"`)
+    /// 4. The last component of the bundle ID (e.g. `"safari"` from
+    ///    `"com.apple.Safari"`) — used when the app bundle can no longer be
+    ///    located on disk.
     private func sourceName() -> String? {
         guard let bundleID = sourceBundleID else {
             return nil
@@ -95,6 +111,13 @@ extension ClipboardItem {
         return "\(AppText.value(.popupMixedFileTypes, language: language)) (\(Self.fileCountText(urls.count, language: language)))"
     }
 
+    /// Returns a short display label for a single file URL.
+    ///
+    /// Detection order:
+    /// 1. **Directory** — checked via `URLResourceValues.isDirectory` to avoid
+    ///    relying on path-extension heuristics for packages / bundles.
+    /// 2. **File extension** — uppercased (e.g. `"PDF"`, `"PNG"`).
+    /// 3. **Unknown** — shown when the extension is missing or empty.
     private static func fileFormatLabel(for url: URL, language: AppLanguage) -> String {
         var isDirectory = false
         if let resourceValues = try? url.resourceValues(forKeys: [.isDirectoryKey]),
@@ -116,6 +139,10 @@ extension ClipboardItem {
         return extensionLower.uppercased()
     }
 
+    /// Formats a file count string according to the active app language.
+    ///
+    /// - English: `"3 files"`
+    /// - Korean:  `"3개"`
     private static func fileCountText(_ count: Int, language: AppLanguage) -> String {
         switch language {
         case .english:

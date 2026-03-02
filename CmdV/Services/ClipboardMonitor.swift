@@ -94,7 +94,9 @@ final class ClipboardMonitor {
     private let utf16TextType = NSPasteboard.PasteboardType("public.utf16-plain-text")
 
     private var timer: Timer?
-    private var lastChangeCount: Int
+    private let changeCountLock = NSLock()
+    private var _lastChangeCount: Int
+    private var isProcessingPayload: Bool = false
     private var cancellables: Set<AnyCancellable> = []
 
     private struct PasteboardPayloadSnapshot {
@@ -120,7 +122,7 @@ final class ClipboardMonitor {
         self.historyStore = historyStore
         self.settings = settings
         self.frontmostBundleIDProvider = frontmostBundleIDProvider
-        lastChangeCount = pasteboardReader.changeCount
+        _lastChangeCount = pasteboardReader.changeCount
 
         settings.$pollingInterval
             .dropFirst()
@@ -160,14 +162,31 @@ final class ClipboardMonitor {
 
     private func pollPasteboard() {
         let currentChangeCount = pasteboardReader.changeCount
-        guard currentChangeCount != lastChangeCount else {
+
+        // Serialise lastChangeCount read-modify-write and isProcessingPayload check
+        // under a lock so concurrent timer fires cannot race with each other.
+        changeCountLock.lock()
+        guard currentChangeCount != _lastChangeCount else {
+            changeCountLock.unlock()
             return
         }
-
-        lastChangeCount = currentChangeCount
+        // Guard against queuing a second dispatch while the first is still running.
+        guard !isProcessingPayload else {
+            // Update the stored count so the in-flight dispatch picks up the latest
+            // change on its next re-check, but don't spawn a duplicate task.
+            _lastChangeCount = currentChangeCount
+            changeCountLock.unlock()
+            return
+        }
+        _lastChangeCount = currentChangeCount
+        isProcessingPayload = true
+        changeCountLock.unlock()
 
         let isRecordingPaused = settings.isRecordingPaused
         guard !isRecordingPaused else {
+            changeCountLock.lock()
+            isProcessingPayload = false
+            changeCountLock.unlock()
             return
         }
 
@@ -175,6 +194,9 @@ final class ClipboardMonitor {
         let sourceBundleID = frontmostBundleIDProvider()
 
         if let sourceBundleID, excludedBundleIDs.contains(sourceBundleID) {
+            changeCountLock.lock()
+            isProcessingPayload = false
+            changeCountLock.unlock()
             return
         }
 
@@ -185,6 +207,10 @@ final class ClipboardMonitor {
 
             let payload = self.capturePayloadSnapshot()
             self.processPayload(payload, sourceBundleID: sourceBundleID)
+
+            self.changeCountLock.lock()
+            self.isProcessingPayload = false
+            self.changeCountLock.unlock()
         }
     }
 

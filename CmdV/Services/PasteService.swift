@@ -30,6 +30,8 @@ final class PasteService {
         label: "CmdV.PasteService.ImagePreparation",
         qos: .userInitiated
     )
+    /// Images larger than this threshold skip TIFF conversion to avoid a large intermediate allocation.
+    private static let tiffConversionSizeThreshold: Int = 50 * 1024 * 1024 // 50 MB
 
     private struct PreparedImagePayload {
         let pngData: Data
@@ -224,38 +226,47 @@ final class PasteService {
             return nil
         }
 
-        return PreparedImagePayload(
-            pngData: imageData,
-            tiffData: makeTIFFData(from: imageData)
-        )
+        // Wrap TIFF conversion in an autoreleasepool so intermediate CGImage /
+        // CGImageDestination objects are released immediately after conversion,
+        // rather than waiting until the enclosing autorelease drain.
+        let tiffData: Data? = autoreleasepool {
+            guard imageData.count < tiffConversionSizeThreshold else {
+                return nil
+            }
+            return makeTIFFData(from: imageData)
+        }
+
+        return PreparedImagePayload(pngData: imageData, tiffData: tiffData)
     }
 
     private static func makeTIFFData(from imageData: Data) -> Data? {
-        guard
-            let source = CGImageSourceCreateWithData(imageData as CFData, nil),
-            let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
-        else {
-            return nil
-        }
+        return autoreleasepool {
+            guard
+                let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+                let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+            else {
+                return nil
+            }
 
-        let tiffData = NSMutableData()
-        guard
-            let destination = CGImageDestinationCreateWithData(
-                tiffData,
-                UTType.tiff.identifier as CFString,
-                1,
-                nil
-            )
-        else {
-            return nil
-        }
+            let tiffData = NSMutableData()
+            guard
+                let destination = CGImageDestinationCreateWithData(
+                    tiffData,
+                    UTType.tiff.identifier as CFString,
+                    1,
+                    nil
+                )
+            else {
+                return nil
+            }
 
-        CGImageDestinationAddImage(destination, image, nil)
-        guard CGImageDestinationFinalize(destination) else {
-            return nil
-        }
+            CGImageDestinationAddImage(destination, image, nil)
+            guard CGImageDestinationFinalize(destination) else {
+                return nil
+            }
 
-        return tiffData as Data
+            return tiffData as Data
+        }
     }
 
     private static func sendCommandVShortcut() -> Bool {

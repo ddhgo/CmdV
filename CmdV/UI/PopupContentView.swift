@@ -350,6 +350,15 @@ struct PopupContentView: View {
         }
     }
 
+    /// Synchronises local highlight state with the row that triggered a menu
+    /// action (copy, share, open, pin, etc.).
+    ///
+    /// Setting `hoveredItemID` ensures the row stays highlighted during the
+    /// action even if the pointer has moved away.  Clearing `contextMenuActive`
+    /// and `contextMenuItemID` prevents the context-menu highlight from
+    /// persisting after the menu has been dismissed via a button tap rather than
+    /// an outside click.  `allowSelectedFallbackHighlight = true` enables the
+    /// keyboard-selection fallback highlight path so the row scrolls into view.
     private func selectForRowAction(_ item: ClipboardItem) {
         viewModel.selectedItemID = item.id
         contextMenuItemID = nil
@@ -358,6 +367,19 @@ struct PopupContentView: View {
         allowSelectedFallbackHighlight = true
     }
 
+    /// Determines whether a row should render in the highlighted/selected style.
+    ///
+    /// Highlight priority (highest → lowest):
+    /// 1. **Context menu active** — the row whose context menu is open wins,
+    ///    even if the pointer has moved elsewhere.
+    /// 2. **Hover** — the row under the pointer takes highlight while no menu
+    ///    is active.
+    /// 3. **Lingering context menu item** — keeps highlight on the last
+    ///    context-menu row briefly after the menu closes (before hover state
+    ///    re-settles).
+    /// 4. **Keyboard selection fallback** — `selectedItemID` is used only when
+    ///    `allowSelectedFallbackHighlight` is `true`, which is set by explicit
+    ///    keyboard navigation or row actions, not by passive list updates.
     private func isRowSelected(itemID: Int64) -> Bool {
         let visibleItemIDs = viewModel.filteredItems.map(\.id)
 

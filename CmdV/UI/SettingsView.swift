@@ -50,10 +50,10 @@ struct SettingsView: View {
     private let minimumInfoBubbleHeight: CGFloat = 42
     private let aboutAppIconSize: CGFloat = 58
     private let aboutActionRowHeight: CGFloat = 28
-    private let developerAddressURL = "https://github.com/rtfdev"
-    private let githubRepositoryURL = "https://github.com/rtfdev/CmdV"
-    private let sponsorURL = "https://github.com/sponsors/rtfdev"
-    private let feedbackURL = "https://github.com/rtfdev/CmdV/issues/new/choose"
+    private let developerAddressURL = "https://github.com/ddhgo"
+    private let githubRepositoryURL = "https://github.com/ddhgo/CmdV"
+    private let sponsorURL = "https://github.com/sponsors/ddhgo"
+    private let feedbackURL = "https://github.com/ddhgo/CmdV/issues/new/choose"
 
     private var language: AppLanguage {
         settings.appLanguage
@@ -330,7 +330,7 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .center)
 
-                Text("by rtfdev")
+                Text("by ddhgo")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
 
