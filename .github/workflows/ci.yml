@@ -16,19 +16,21 @@ jobs:
       - name: Build
         run: |
           xcodebuild \
-            -project "CtrlCV.xcodeproj" \
-            -scheme "CtrlCV" \
+            -project "CmdV.xcodeproj" \
+            -scheme "CmdV" \
             -configuration Debug \
-            -sdk macosx \
+            -derivedDataPath build/ci/DerivedData \
+            -destination 'platform=macOS' \
             CODE_SIGNING_ALLOWED=NO \
-            build
+            clean build
 
       - name: Test
         run: |
           xcodebuild \
-            -project "CtrlCV.xcodeproj" \
-            -scheme "CtrlCV" \
+            -project "CmdV.xcodeproj" \
+            -scheme "CmdV" \
             -configuration Debug \
+            -derivedDataPath build/ci/DerivedData \
             -destination 'platform=macOS' \
             CODE_SIGNING_ALLOWED=NO \
             test

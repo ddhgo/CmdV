@@ -150,6 +150,8 @@ if [[ "$SKIP_ARCHIVE" -eq 0 ]]; then
     CODE_SIGN_STYLE=Manual \
     CODE_SIGN_IDENTITY="$APP_SIGN_IDENTITY" \
     CODE_SIGNING_ALLOWED=YES \
+    CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
+    ENABLE_HARDENED_RUNTIME=YES \
     archive
 else
   echo "[1/7] Skipping archive"
@@ -164,6 +166,27 @@ fi
 echo "[2/7] Verifying app signature"
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 spctl -a -vv "$APP_PATH"
+
+SIGNATURE_INFO="$(codesign -dv --verbose=4 "$APP_PATH" 2>&1 || true)"
+if echo "$SIGNATURE_INFO" | rg -q 'TeamIdentifier=not set'; then
+  echo "Refusing to continue: app is not Developer ID signed (TeamIdentifier missing)." >&2
+  exit 1
+fi
+if ! echo "$SIGNATURE_INFO" | rg -q 'Runtime Version='; then
+  echo "Refusing to continue: Hardened Runtime is not enabled for the archived app." >&2
+  exit 1
+fi
+
+ENTITLEMENTS_TMP="$(mktemp "${TMPDIR:-/tmp}/cmdv-entitlements.XXXXXX.plist")"
+if codesign -d --entitlements :- "$APP_PATH" >"$ENTITLEMENTS_TMP" 2>/dev/null; then
+  GET_TASK_ALLOW=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.get-task-allow' "$ENTITLEMENTS_TMP" 2>/dev/null || true)
+  if [[ "$GET_TASK_ALLOW" == "true" || "$GET_TASK_ALLOW" == "1" ]]; then
+    rm -f "$ENTITLEMENTS_TMP"
+    echo "Refusing to continue: com.apple.security.get-task-allow must be false in release." >&2
+    exit 1
+  fi
+fi
+rm -f "$ENTITLEMENTS_TMP"
 
 VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP_PATH/Contents/Info.plist")
 DMG_NAME="CmdV-${VERSION}.dmg"

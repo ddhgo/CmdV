@@ -51,9 +51,9 @@ struct SettingsView: View {
     private let aboutAppIconSize: CGFloat = 58
     private let aboutActionRowHeight: CGFloat = 28
     private let developerAddressURL = "https://github.com/rtfdev"
-    private let githubRepositoryURL = "https://github.com/rtfdev/CtrlCV"
+    private let githubRepositoryURL = "https://github.com/rtfdev/CmdV"
     private let sponsorURL = "https://github.com/sponsors/rtfdev"
-    private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
+    private let feedbackURL = "https://github.com/rtfdev/CmdV/issues/new/choose"
 
     private var language: AppLanguage {
         settings.appLanguage

@@ -71,6 +71,11 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(reloaded.appLanguage, .korean)
     }
 
+    func testAppLanguageDefaultsToKoreanForFirstLaunch() {
+        let settings = SettingsStore(defaults: defaults)
+        XCTAssertEqual(settings.appLanguage, .korean)
+    }
+
     func testAppLanguageFallsBackToEnglishForUnknownValue() {
         defaults.set("xx", forKey: "settings.appLanguage")
 

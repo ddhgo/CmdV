@@ -199,7 +199,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         return view
     }()
 
-    private var appLanguage: AppLanguage = .english
+    private var appLanguage: AppLanguage = .korean
     private var hotkeyConfiguration: HotkeyConfiguration = .default
     private var isRecordingPaused = false
     private let menuBarIconSize = NSSize(width: 19, height: 19)

@@ -104,6 +104,18 @@ final class SettingsStore: ObservableObject {
 
     @Published var hotkey: HotkeyConfiguration {
         didSet {
+            let sanitizedModifiers = Self.sanitizeHotkeyModifiers(
+                hotkey.modifiers.intersection(Self.supportedHotkeyModifiers),
+                maxModifiers: Self.maxGlobalHotkeyModifiers
+            )
+            let normalized = HotkeyConfiguration(
+                keyCode: hotkey.keyCode,
+                modifiers: sanitizedModifiers.isEmpty ? [.option] : sanitizedModifiers
+            )
+            if normalized != hotkey {
+                hotkey = normalized
+                return
+            }
             defaults.set(Int(hotkey.keyCode), forKey: Keys.hotkeyKeyCode)
             defaults.set(Int(hotkey.modifiers.rawValue), forKey: Keys.hotkeyModifiersRaw)
         }
@@ -111,6 +123,18 @@ final class SettingsStore: ObservableObject {
 
     @Published var screenshotHotkey: HotkeyConfiguration {
         didSet {
+            let sanitizedModifiers = Self.sanitizeHotkeyModifiers(
+                screenshotHotkey.modifiers.intersection(Self.supportedHotkeyModifiers),
+                maxModifiers: Self.maxScreenshotHotkeyModifiers
+            )
+            let normalized = HotkeyConfiguration(
+                keyCode: screenshotHotkey.keyCode,
+                modifiers: sanitizedModifiers.isEmpty ? [.command, .shift] : sanitizedModifiers
+            )
+            if normalized != screenshotHotkey {
+                screenshotHotkey = normalized
+                return
+            }
             defaults.set(Int(screenshotHotkey.keyCode), forKey: Keys.screenshotHotkeyKeyCode)
             defaults.set(Int(screenshotHotkey.modifiers.rawValue), forKey: Keys.screenshotHotkeyModifiersRaw)
         }
@@ -145,7 +169,11 @@ final class SettingsStore: ObservableObject {
         launchAtLoginEnabled = initialLaunchAtLoginEnabled
         launchAtLoginFeedback = initialLaunchAtLoginEnabled ? .enabled : .disabled
         excludedBundleIDsText = defaults.string(forKey: Keys.excludedBundleIDsText) ?? ""
-        appLanguage = AppLanguage(rawValue: defaults.string(forKey: Keys.appLanguage) ?? "") ?? .english
+        if let storedLanguage = defaults.string(forKey: Keys.appLanguage) {
+            appLanguage = AppLanguage(rawValue: storedLanguage) ?? .english
+        } else {
+            appLanguage = .korean
+        }
         clearHistoryOnSystemRestart = defaults.object(forKey: Keys.clearHistoryOnSystemRestart) as? Bool ?? false
 
         let keyCode: UInt32

@@ -84,27 +84,31 @@ Current coverage focus:
 CI workflow:
 - `.github/workflows/ci.yml` (build + test on macOS)
 
-## Packaging (DMG)
+## Packaging (Internal DMG)
 
-Create a distributable DMG with:
+Create an internal test DMG with:
 
 ```bash
-./scripts/create_dmg.sh
+./scripts/clean_build_artifacts.sh --dry-run
+./scripts/clean_build_artifacts.sh
+./scripts/create_dmg.sh --configuration Debug
 ```
 
 Useful options:
 
 ```bash
 ./scripts/create_dmg.sh --configuration Debug --derived-data build/DerivedData --output dist
-./scripts/create_dmg.sh --skip-build --configuration Release --derived-data build/DerivedData --output dist
+./scripts/create_dmg.sh --skip-build --configuration Debug --derived-data build/DerivedData --output dist
+./scripts/create_dmg.sh --configuration Release --allow-insecure-release
 ```
 
 Default output:
 - `dist/CmdV-<version>.dmg`
+- Built app (Release): `build/DerivedData/Build/Products/Release/CmdV.app`
 
 Distribution note:
-- Share **Release DMG** for external testers.
-- ZIP sharing is intended only for internal quick checks.
+- `create_dmg.sh` is for internal test sharing.
+- External distribution must use `scripts/release_signed_notarized_dmg.sh` (Developer ID + notarization).
 
 ## Signed Release (Developer ID + Notarization)
 

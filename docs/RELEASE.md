@@ -8,6 +8,21 @@ This guide describes the standard release flow for a signed and notarized DMG.
 - Recommended: **Developer ID signed + notarized DMG**
 - ZIP builds are for internal ad-hoc sharing only and are not recommended for tester distribution
   because Gatekeeper and Accessibility trust can be less predictable.
+- `scripts/create_dmg.sh` now blocks insecure Release packaging by default.
+  Use `--allow-insecure-release` only for internal checks.
+
+## 0) Clean Stale Artifacts (Recommended)
+
+If you have multiple local `CmdV.app` outputs and they look different, clean old artifacts first:
+
+```bash
+./scripts/clean_build_artifacts.sh --dry-run
+./scripts/clean_build_artifacts.sh
+```
+
+Canonical release outputs after rebuilding:
+- Archive app: `build/archive/CmdV.xcarchive/Products/Applications/CmdV.app`
+- Release DMG: `dist/release/CmdV-<version>.dmg`
 
 ## 1) Prerequisites
 
@@ -46,6 +61,11 @@ APP_SIGN_IDENTITY="Developer ID Application: Your Name (ABCDE12345)" \
 NOTARY_PROFILE="CmdVNotary" \
 scripts/release_signed_notarized_dmg.sh
 ```
+
+Security gates enforced by the release script:
+- Hardened Runtime must be enabled.
+- `com.apple.security.get-task-allow` must not be true.
+- App must be Developer ID signed (TeamIdentifier must be present).
 
 Credential safety:
 - Prefer `NOTARY_PROFILE` and avoid entering passwords directly in terminal commands.

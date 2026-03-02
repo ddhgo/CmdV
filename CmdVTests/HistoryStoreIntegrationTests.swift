@@ -114,20 +114,29 @@ final class HistoryStoreIntegrationTests: XCTestCase {
         }
 
         historyStore.setFavorited(itemID: favoriteID, isFavorited: true)
+        historyStore.setScopeForFavoritesOnly(true)
         waitUntil("item favorited") {
+            self.historyStore.items.count == 1 &&
+            self.historyStore.items.first?.id == favoriteID &&
             self.historyStore.items.first?.isFavorited == true
         }
+        historyStore.setScopeForFavoritesOnly(false)
 
         historyStore.addTextIfNeeded("Newest Item", sourceBundleID: nil)
         historyStore.trimToCapacity(limit: 1)
         historyStore.loadInitialHistory()
-        waitUntil("favorite + newest are both present") {
-            self.historyStore.items.count == 2
+        waitUntil("history scope keeps non-favorite newest item") {
+            self.historyStore.items.count == 1 &&
+            self.historyStore.items.first?.textContent == "Newest Item"
         }
 
-        let texts = Set(historyStore.items.compactMap(\.textContent))
-        XCTAssertEqual(texts, Set(["Favorite Item", "Newest Item"]))
-        XCTAssertTrue(historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited }))
+        historyStore.setScopeForFavoritesOnly(true)
+        waitUntil("favorites scope keeps favorited item") {
+            self.historyStore.items.count == 1 &&
+            self.historyStore.items.first?.id == favoriteID &&
+            self.historyStore.items.first?.textContent == "Favorite Item" &&
+            self.historyStore.items.first?.isFavorited == true
+        }
     }
 
     func testClearHistoryKeepsFavoritedItems() {
@@ -143,15 +152,27 @@ final class HistoryStoreIntegrationTests: XCTestCase {
         }
 
         historyStore.setFavorited(itemID: favoriteID, isFavorited: true)
+        historyStore.setScopeForFavoritesOnly(true)
         waitUntil("favorite set") {
             self.historyStore.items.contains(where: { $0.id == favoriteID && $0.isFavorited })
         }
-
-        historyStore.clearHistory()
-        waitUntil("history cleared except favorite") {
-            self.historyStore.items.count == 1
+        historyStore.setScopeForFavoritesOnly(false)
+        waitUntil("history scope excludes favorites") {
+            self.historyStore.items.count == 1 &&
+            self.historyStore.items.first?.textContent == "Nonfavorite Item"
         }
 
+        historyStore.clearHistory()
+        waitUntil("history cleared") {
+            self.historyStore.items.isEmpty
+        }
+
+        historyStore.setScopeForFavoritesOnly(true)
+        waitUntil("favorite remains in favorites scope") {
+            self.historyStore.items.count == 1 &&
+            self.historyStore.items.first?.id == favoriteID &&
+            self.historyStore.items.first?.isFavorited == true
+        }
         XCTAssertEqual(self.historyStore.items.first?.id, favoriteID)
         XCTAssertEqual(self.historyStore.items.first?.textContent, "Favorite Item")
         XCTAssertTrue(self.historyStore.items.first?.isFavorited == true)

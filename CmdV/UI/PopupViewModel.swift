@@ -24,7 +24,7 @@ final class PopupViewModel: ObservableObject {
     @Published private(set) var isRecordingPaused: Bool = false
     @Published private(set) var accessibilityGranted: Bool = false
     @Published private(set) var showsPermissionBanner: Bool = false
-    @Published private(set) var appLanguage: AppLanguage = .english
+    @Published private(set) var appLanguage: AppLanguage = .korean
     @Published var searchFocusRequestToken: Int = 0
     @Published var explicitSelectionToken: Int = 0
 
