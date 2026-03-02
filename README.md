@@ -25,8 +25,8 @@ No more losing that thing you copied two pastes ago.
 
 #### 1) Install from release (recommended)
 
-1. Download `CmdV.dmg` from [latest release](https://github.com/ddhgo/CmdV/releases/latest)
-2. Open the DMG and drag **CmdV** to your Applications folder
+1. Download `CmdV-v*.zip` from [latest release](https://github.com/ddhgo/CmdV/releases/latest)
+2. Unzip and move **CmdV.app** to your Applications folder
 3. Launch CmdV from Applications
 
 #### 2) Build from source
@@ -76,6 +76,12 @@ If you skip this, CmdV still copies the item to your clipboard — you just past
 
 ### Troubleshooting
 
+**“CmdV.app” cannot be opened because Apple cannot check it for malicious software**
+This build is not notarized. Use one of the methods below:
+- Finder: Right-click `CmdV.app` → **Open** → **Open**
+- Terminal:
+  `xattr -dr com.apple.quarantine /Applications/CmdV.app`
+
 **Hotkey doesn't work**
 Another app may be using the same shortcut. Change it in CmdV Settings → Keyboard Shortcuts.
 
@@ -109,8 +115,8 @@ CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지,
 
 #### 1) 릴리스로 설치 (권장)
 
-1. [최신 릴리스](https://github.com/ddhgo/CmdV/releases/latest)에서 `CmdV.dmg` 다운로드
-2. DMG를 열고 **CmdV**를 Applications 폴더로 드래그
+1. [최신 릴리스](https://github.com/ddhgo/CmdV/releases/latest)에서 `CmdV-v*.zip` 다운로드
+2. 압축 해제 후 **CmdV.app**을 Applications 폴더로 이동
 3. Applications에서 CmdV 실행
 
 #### 2) 소스에서 빌드
@@ -159,6 +165,12 @@ CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지,
 - 네트워크 요청, 분석, 추적 없음
 
 ### 문제 해결
+
+**“CmdV.app”을(를) 열 수 없고 Apple 확인 경고가 떠요**
+현재 빌드는 공증(notarization)이 없어 경고가 뜰 수 있습니다. 아래 중 하나로 실행하세요:
+- Finder: `CmdV.app` 우클릭 → **열기** → **열기**
+- 터미널:
+  `xattr -dr com.apple.quarantine /Applications/CmdV.app`
 
 **단축키가 작동하지 않아요**
 다른 앱이 동일한 단축키를 사용 중일 수 있습니다. CmdV 설정 → 단축키에서 변경해보세요.
