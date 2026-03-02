@@ -15,7 +15,7 @@ Copy anything. Come back to it anytime.
 
 ### What is CmdV?
 
-CmdV lives in your menu bar and silently keeps a history of everything you copy — text, images, and more. Whenever you need something you copied earlier, just press a hotkey and pick it from the list.
+CmdV lives in your menu bar and silently keeps a history of everything you copy — text, images, and files. Whenever you need something you copied earlier, just press a hotkey and pick it from the list.
 
 No more losing that thing you copied two pastes ago.
 
@@ -44,13 +44,14 @@ No more losing that thing you copied two pastes ago.
 
 ### Features
 
-- **Clipboard history** — automatically captures text and images as you copy
+- **Clipboard history** — automatically captures text, images, and files as you copy
 - **Instant search** — type to filter through your history
-- **Pin items** — keep important clips at the top so they never get pushed out
-- **Two tabs** — switch between All items and Favorites
+- **Pin items** — keep important clips at the top of your history list
+- **Favorites tab** — keep starred items in a separate tab
+- **Built-in capture hotkey** — capture a selected screen area directly to clipboard
 - **Fully keyboard-driven** — open, search, select, and paste without touching the mouse
-- **Privacy controls** — pause recording anytime, clear history, exclude specific apps
-- **Configurable** — change hotkey, history capacity, polling interval, and more
+- **Privacy controls** — pause recording, clear history, and optionally clear history on restart
+- **Configurable** — language, launch at login, hotkeys, history capacity, polling interval, and more
 - **No telemetry** — nothing leaves your Mac. Ever.
 
 ### Keyboard Shortcuts
@@ -58,7 +59,7 @@ No more losing that thing you copied two pastes ago.
 | Key | Action |
 |-----|--------|
 | `Option + V` | Open / close clipboard history |
-| `Option + Shift + S` | Default clipboard capture shortcut |
+| `Control + Shift + Command + 4` | Default clipboard capture shortcut |
 
 > All shortcuts are customizable in Settings.
 
@@ -100,7 +101,7 @@ Like CmdV? Support development:
 
 ### CmdV가 뭔가요?
 
-CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지 등 — 을 자동으로 기록합니다. 이전에 복사했던 내용이 필요할 때 단축키 하나로 목록을 열어 바로 붙여넣을 수 있어요.
+CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지, 파일 — 을 자동으로 기록합니다. 이전에 복사했던 내용이 필요할 때 단축키 하나로 목록을 열어 바로 붙여넣을 수 있어요.
 
 두 번 복사하느라 낭비하는 시간, 이제 없어도 됩니다.
 
@@ -129,13 +130,14 @@ CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지 
 
 ### 주요 기능
 
-- **클립보드 히스토리** — 복사할 때마다 텍스트와 이미지를 자동으로 기록
+- **클립보드 히스토리** — 복사할 때마다 텍스트, 이미지, 파일을 자동으로 기록
 - **빠른 검색** — 입력하면 바로 필터링
-- **핀 고정** — 중요한 항목을 목록 상단에 고정, 밀려날 걱정 없음
-- **두 가지 탭** — 전체 / 즐겨찾기 전환
+- **핀 고정** — 중요한 항목을 히스토리 목록 상단에 고정
+- **즐겨찾기 탭** — 별표한 항목을 별도 탭에서 관리
+- **기본 캡처 단축키 제공** — 선택 영역을 캡처해 클립보드에 바로 복사
 - **완전한 키보드 조작** — 마우스 없이 열고, 검색하고, 붙여넣기까지
-- **프라이버시 제어** — 언제든 기록 일시정지, 히스토리 삭제, 특정 앱 제외
-- **세부 설정** — 단축키, 히스토리 용량, 폴링 주기 등 변경 가능
+- **프라이버시 제어** — 기록 일시정지, 히스토리 삭제, 재시동 시 기록 삭제 옵션
+- **세부 설정** — 언어, 로그인 시 실행, 단축키, 히스토리 용량, 폴링 주기 등 변경 가능
 - **완전한 로컬 저장** — 어떤 데이터도 외부로 나가지 않습니다
 
 ### 단축키
@@ -143,7 +145,7 @@ CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지 
 | 키 | 동작 |
 |----|------|
 | `Option + V` | 클립보드 히스토리 열기 / 닫기 |
-| `Option + Shift + S` | 기본 클립보드 캡쳐 단축키 |
+| `Control + Shift + Command + 4` | 기본 클립보드 캡처 단축키 |
 
 > 모든 단축키는 설정에서 변경할 수 있습니다.
 
