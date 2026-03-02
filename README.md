@@ -58,13 +58,7 @@ No more losing that thing you copied two pastes ago.
 | Key | Action |
 |-----|--------|
 | `Option + V` | Open / close clipboard history |
-| `↑ / ↓` | Navigate items |
-| `Enter` | Paste selected item |
-| `Cmd + Enter` | Copy to clipboard (no auto-paste) |
-| `Cmd + P` | Pin / unpin selected item |
-| `Cmd + F` | Focus search |
-| `Delete` | Remove selected item from history |
-| `Esc` | Close |
+| `Option + Shift + S` | Default clipboard capture shortcut |
 
 > All shortcuts are customizable in Settings.
 
@@ -149,13 +143,7 @@ CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지 
 | 키 | 동작 |
 |----|------|
 | `Option + V` | 클립보드 히스토리 열기 / 닫기 |
-| `↑ / ↓` | 항목 이동 |
-| `Enter` | 선택한 항목 붙여넣기 |
-| `Cmd + Enter` | 클립보드에 복사만 (자동 붙여넣기 없음) |
-| `Cmd + P` | 선택한 항목 핀 고정 / 해제 |
-| `Cmd + F` | 검색창 포커스 |
-| `Delete` | 선택한 항목 삭제 |
-| `Esc` | 닫기 |
+| `Option + Shift + S` | 기본 클립보드 캡쳐 단축키 |
 
 > 모든 단축키는 설정에서 변경할 수 있습니다.
 
