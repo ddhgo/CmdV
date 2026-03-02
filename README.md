@@ -49,8 +49,6 @@ No more losing that thing you copied two pastes ago.
 - **Pin items** — keep important clips at the top of your history list
 - **Favorites tab** — keep starred items in a separate tab
 - **Built-in capture hotkey** — capture a selected screen area directly to clipboard
-- **Fully keyboard-driven** — open, search, select, and paste without touching the mouse
-- **Privacy controls** — pause recording, clear history, and optionally clear history on restart
 - **Configurable** — language, launch at login, hotkeys, history capacity, polling interval, and more
 - **No telemetry** — nothing leaves your Mac. Ever.
 
@@ -135,8 +133,6 @@ CmdV는 메뉴바에 상주하며 복사한 모든 것 — 텍스트, 이미지,
 - **핀 고정** — 중요한 항목을 히스토리 목록 상단에 고정
 - **즐겨찾기 탭** — 별표한 항목을 별도 탭에서 관리
 - **기본 캡처 단축키 제공** — 선택 영역을 캡처해 클립보드에 바로 복사
-- **완전한 키보드 조작** — 마우스 없이 열고, 검색하고, 붙여넣기까지
-- **프라이버시 제어** — 기록 일시정지, 히스토리 삭제, 재시동 시 기록 삭제 옵션
 - **세부 설정** — 언어, 로그인 시 실행, 단축키, 히스토리 용량, 폴링 주기 등 변경 가능
 - **완전한 로컬 저장** — 어떤 데이터도 외부로 나가지 않습니다
 
