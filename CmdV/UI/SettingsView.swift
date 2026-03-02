@@ -48,7 +48,10 @@ struct SettingsView: View {
     private let infoBubbleIconHorizontalOffset: CGFloat = 20
     private let infoBubbleVerticalSpacing: CGFloat = 8
     private let minimumInfoBubbleHeight: CGFloat = 42
+    private let aboutAppIconSize: CGFloat = 58
+    private let aboutActionRowHeight: CGFloat = 28
     private let developerAddressURL = "https://github.com/rtfdev"
+    private let githubRepositoryURL = "https://github.com/rtfdev/CtrlCV"
     private let sponsorURL = "https://github.com/sponsors/rtfdev"
     private let feedbackURL = "https://github.com/rtfdev/CtrlCV/issues/new/choose"
 
@@ -303,63 +306,105 @@ struct SettingsView: View {
             title: "",
             showTitle: false
         ) {
-            VStack(alignment: .center, spacing: 8) {
-                aboutValueRow {
-                    HStack(spacing: 8) {
-                        Text("CmdV")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.primary)
+            VStack(alignment: .center, spacing: 7) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: aboutAppIconSize, height: aboutAppIconSize)
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.18), radius: 10, x: 0, y: 4)
 
-                        Text(appVersionText)
-                            .foregroundStyle(.secondary)
-                            .font(.system(size: 13, weight: .medium))
-                    }
-                }
+                VStack(spacing: 1) {
+                    Text("CmdV")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(.primary)
 
-                aboutValueRow {
-                    Text("by rtfdev")
+                    Text("\(AppText.value(.settingsVersion, language: language)) \(appVersionText)")
+                        .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(.secondary)
-                        .font(.callout)
                 }
+                .frame(maxWidth: .infinity, alignment: .center)
 
-                aboutValueRow {
-                    Button(AppText.value(.settingsDeveloperAddressOpen, language: language)) {
-                        openExternalURL(developerAddressURL)
-                    }
-                    .buttonStyle(.bordered)
-                    .font(.callout)
-                    .controlSize(.small)
-                }
+                Text("by rtfdev")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
 
-                aboutValueRow {
-                    Button(AppText.value(.settingsSendFeedback, language: language)) {
-                        openExternalURL(feedbackURL)
-                    }
-                    .buttonStyle(.bordered)
-                    .font(.callout)
-                    .controlSize(.small)
+                VStack(spacing: 6) {
+                    aboutActionButton(
+                        title: "GitHub",
+                        systemImage: "chevron.left.forwardslash.chevron.right",
+                        destination: githubRepositoryURL
+                    )
+                    aboutActionButton(
+                        title: AppText.value(.settingsDeveloperAddressOpen, language: language),
+                        systemImage: "globe",
+                        destination: developerAddressURL
+                    )
+                    aboutActionButton(
+                        title: AppText.value(.settingsSendFeedback, language: language),
+                        systemImage: "bubble.left.and.bubble.right",
+                        destination: feedbackURL
+                    )
                 }
+                .padding(.top, 3)
 
-                aboutValueRow {
-                    Button(AppText.value(.settingsSponsorAuthor, language: language)) {
-                        openExternalURL(sponsorURL)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .font(.callout)
-                    .controlSize(.small)
+                Button(AppText.value(.settingsSponsorAuthor, language: language)) {
+                    openExternalURL(sponsorURL)
                 }
+                .buttonStyle(.plain)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+                .padding(.top, 2)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
         }
     }
 
-    private func aboutValueRow<Content: View>(
-        @ViewBuilder content: () -> Content
+    private func aboutActionButton(
+        title: String,
+        systemImage: String,
+        destination: String
     ) -> some View {
-        VStack(alignment: .center, spacing: 4) {
-            content()
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, alignment: .center)
+        Button {
+            openExternalURL(destination)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 15)
+
+                Text(title)
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                    .foregroundStyle(.primary)
+
+                Spacer(minLength: 0)
+
+                Image(systemName: "arrow.up.forward")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .frame(maxWidth: .infinity)
+            .frame(height: aboutActionRowHeight)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(CmdVTheme.Colors.controlSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
+            )
         }
+        .buttonStyle(.plain)
     }
 
     private var generalClearOnSystemRestartRow: some View {
