@@ -23,13 +23,22 @@ No more losing that thing you copied two pastes ago.
 
 **Requirements:** macOS 13.0 or later
 
-#### 1) Install from release (recommended)
+#### 1) Homebrew (recommended)
+
+```bash
+brew tap ddhgo/cmdv
+brew install --cask cmdv
+```
+
+#### 2) Install from release
 
 1. Download `CmdV-v*.zip` from [latest release](https://github.com/ddhgo/CmdV/releases/latest)
 2. Unzip and move **CmdV.app** to your Applications folder
 3. Launch CmdV from Applications
 
-#### 2) Build from source
+> **Note:** This build is not notarized. macOS may block the first launch — see [Troubleshooting](#troubleshooting) below.
+
+#### 3) Build from source
 
 1. Clone this repository
 2. Open `CmdV.xcodeproj` in Xcode
@@ -48,7 +57,7 @@ No more losing that thing you copied two pastes ago.
 - **Instant search** — type to filter through your history
 - **Pin items** — keep important clips at the top of your history list
 - **Favorites tab** — star items and manage them in a separate tab
-- **Built-in capture hotkey** — capture a selected screen area directly to clipboard
+- **Clipboard capture hotkey** — capture a selected screen area directly to clipboard
 - **Configurable** — language, launch at login, hotkeys, history capacity, polling interval, and more
 - **No telemetry** — nothing leaves your Mac. Ever.
 
@@ -57,14 +66,15 @@ No more losing that thing you copied two pastes ago.
 | Key | Action |
 |-----|--------|
 | `Option + V` | Open / close clipboard history |
-| `Control + Shift + Command + 4` | Capture screen to clipboard |
+| `Option + Shift + S` | Clipboard capture |
 
 > All shortcuts are customizable in Settings.
 
 ### Permissions
 
-**Accessibility** — Required for auto-paste. CmdV uses this to send `Cmd+V` after you select an item.
-If you skip this, CmdV still copies the item to your clipboard — you just paste manually.
+**Accessibility** — Required for auto-paste.
+
+> **What is auto-paste?** When you select an item from clipboard history, CmdV copies it to your clipboard *and* automatically pastes it into the active app by simulating `Cmd+V`. Without this permission, CmdV still copies the item — you just press `Cmd+V` yourself.
 
 → System Settings → Privacy & Security → Accessibility
 
@@ -111,13 +121,22 @@ CmdV는 복사한 모든 내용을 자동으로 기록하는 클립보드 관리
 
 **요구 사항:** macOS 13.0 이상
 
-#### 1) 릴리스 설치 (권장)
+#### 1) Homebrew (권장)
+
+```bash
+brew tap ddhgo/cmdv
+brew install --cask cmdv
+```
+
+#### 2) 릴리스 설치
 
 1. [최신 릴리스](https://github.com/ddhgo/CmdV/releases/latest)에서 `CmdV-v*.zip` 다운로드
 2. 압축을 풀고 **CmdV.app**을 응용 프로그램 폴더로 이동
 3. CmdV 실행
 
-#### 2) 소스 빌드
+> **참고:** 이 빌드는 공증(notarization)되지 않아 macOS가 첫 실행을 차단할 수 있습니다. 아래 [문제 해결](#문제-해결) 항목을 참고하세요.
+
+#### 3) 소스 빌드
 
 1. 이 저장소를 클론
 2. Xcode에서 `CmdV.xcodeproj` 열기
@@ -136,7 +155,7 @@ CmdV는 복사한 모든 내용을 자동으로 기록하는 클립보드 관리
 - **즉시 검색** — 키워드를 입력하면 바로 필터링
 - **고정** — 자주 쓰는 항목을 목록 맨 위에 고정
 - **즐겨찾기** — 중요한 항목을 별도 탭에서 모아보기
-- **화면 캡처 단축키** — 선택 영역을 캡처해서 클립보드에 바로 저장
+- **클립보드 캡처** — 선택 영역을 캡처해서 클립보드에 바로 저장
 - **세부 설정** — 언어, 로그인 시 자동 실행, 단축키, 저장 개수, 폴링 주기 등
 - **완전 로컬** — 데이터가 외부로 전송되지 않음
 
@@ -145,14 +164,15 @@ CmdV는 복사한 모든 내용을 자동으로 기록하는 클립보드 관리
 | 키 | 동작 |
 |----|------|
 | `Option + V` | 클립보드 기록 창 열기 / 닫기 |
-| `Control + Shift + Command + 4` | 화면 캡처 후 클립보드에 저장 |
+| `Option + Shift + S` | 클립보드 캡처 |
 
 > 모든 단축키는 설정에서 변경할 수 있습니다.
 
 ### 권한
 
-**손쉬운 사용 (Accessibility)** — 자동 붙여넣기에 필요합니다. 항목을 선택하면 `Cmd+V`를 자동으로 눌러주는 데 쓰입니다.
-권한을 허용하지 않아도 항목은 클립보드에 복사되며, 직접 `Cmd+V`로 붙여넣으면 됩니다.
+**손쉬운 사용 (Accessibility)** — 자동 붙여넣기에 필요합니다.
+
+> **자동 붙여넣기란?** 클립보드 기록에서 항목을 선택하면, CmdV가 해당 내용을 클립보드에 복사하고 활성 앱에 `Cmd+V`를 자동으로 입력해줍니다. 권한이 없어도 클립보드 복사는 되며, 직접 `Cmd+V`를 누르면 됩니다.
 
 → 시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용
 

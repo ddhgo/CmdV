@@ -129,7 +129,7 @@ final class SettingsStore: ObservableObject {
             )
             let normalized = HotkeyConfiguration(
                 keyCode: screenshotHotkey.keyCode,
-                modifiers: sanitizedModifiers.isEmpty ? [.command, .shift] : sanitizedModifiers
+                modifiers: sanitizedModifiers.isEmpty ? [.option, .shift] : sanitizedModifiers
             )
             if normalized != screenshotHotkey {
                 screenshotHotkey = normalized
@@ -203,14 +203,14 @@ final class SettingsStore: ObservableObject {
         if let storedScreenshotKeyCode = defaults.object(forKey: Keys.screenshotHotkeyKeyCode) as? Int {
             screenshotKeyCode = UInt32(storedScreenshotKeyCode)
         } else {
-            screenshotKeyCode = UInt32(kVK_ANSI_4)
+            screenshotKeyCode = UInt32(kVK_ANSI_S)
         }
 
         let screenshotModifiers: NSEvent.ModifierFlags
         if let storedScreenshotModifiers = defaults.object(forKey: Keys.screenshotHotkeyModifiersRaw) as? Int {
             screenshotModifiers = NSEvent.ModifierFlags(rawValue: UInt(storedScreenshotModifiers))
         } else {
-            screenshotModifiers = [.command, .shift, .control]
+            screenshotModifiers = [.option, .shift]
         }
 
         let sanitizedScreenshotModifiers = Self.sanitizeHotkeyModifiers(
@@ -219,7 +219,7 @@ final class SettingsStore: ObservableObject {
         )
         screenshotHotkey = HotkeyConfiguration(
             keyCode: screenshotKeyCode,
-            modifiers: sanitizedScreenshotModifiers.isEmpty ? [.command, .shift] : sanitizedScreenshotModifiers
+            modifiers: sanitizedScreenshotModifiers.isEmpty ? [.option, .shift] : sanitizedScreenshotModifiers
         )
     }
 
@@ -326,7 +326,7 @@ final class SettingsStore: ObservableObject {
             maxModifiers: Self.maxScreenshotHotkeyModifiers
         )
         if validModifiers.isEmpty {
-            validModifiers = [.command, .shift]
+            validModifiers = [.option, .shift]
         }
         screenshotHotkey = HotkeyConfiguration(
             keyCode: screenshotHotkey.keyCode,
