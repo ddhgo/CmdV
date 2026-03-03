@@ -52,7 +52,7 @@ struct SettingsView: View {
     private let aboutActionRowHeight: CGFloat = 28
     private let developerAddressURL = "https://github.com/ddhgo"
     private let githubRepositoryURL = "https://github.com/ddhgo/CmdV"
-    private let sponsorURL = "https://github.com/sponsors/ddhgo"
+    private let sponsorURL = "https://buymeacoffee.com/ddhgo"
     private let feedbackURL = "https://github.com/ddhgo/CmdV/issues/new/choose"
 
     private var language: AppLanguage {
