@@ -2,7 +2,10 @@ import Foundation
 import OSLog
 import SQLite3
 
-private let sqliteTransient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
+/// Swift equivalent of the C macro `SQLITE_TRANSIENT` (value `(sqlite3_destructor_type)(−1)`).
+/// Tells SQLite to make its own private copy of the bound data immediately,
+/// so the caller's buffer can be freed or reused safely.
+private let sqliteTransient: sqlite3_destructor_type = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
 enum SQLiteHistoryDatabaseError: Error {
     case openFailed(String)
@@ -581,7 +584,14 @@ final class SQLiteHistoryDatabase {
         return columnString(statement: statement, at: 0)
     }
 
+    private static let knownTables: Set<String> = ["history_items"]
+
     private func hasColumn(named columnName: String, in table: String) -> Bool {
+        guard Self.knownTables.contains(table) else {
+            logger.error("hasColumn called with unknown table: \(table, privacy: .public)")
+            return false
+        }
+
         guard let statement = prepare("PRAGMA table_info(\(table));") else {
             return false
         }

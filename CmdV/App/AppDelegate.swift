@@ -205,11 +205,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
         process.arguments = ["-i", "-c"]
 
+        let stderrPipe = Pipe()
+        process.standardError = stderrPipe
+
         do {
             try process.run()
         } catch {
             logger.error("Unable to launch screenshot capture: \(error.localizedDescription, privacy: .public)")
             NSSound.beep()
+            return
+        }
+
+        DispatchQueue.global(qos: .utility).async { [logger] in
+            process.waitUntilExit()
+
+            guard process.terminationStatus != 0 else {
+                return
+            }
+
+            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+            let stderrText = String(data: stderrData, encoding: .utf8) ?? ""
+            logger.warning(
+                "screencapture exited with status \(process.terminationStatus): \(stderrText, privacy: .public)"
+            )
         }
     }
 
@@ -473,6 +491,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return axUIElement(from: focusedWindowRef)
     }
 
+    /// Safely converts a `CFTypeRef` to `AXUIElement` after verifying its
+    /// Core Foundation type ID matches `AXUIElementGetTypeID()`.
     private func axUIElement(from value: CFTypeRef?) -> AXUIElement? {
         guard
             let value,
@@ -481,6 +501,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
         }
 
+        // CFTypeRef → AXUIElement is a toll-free-bridgeable cast guarded by
+        // the type-ID check above.  `unsafeBitCast` is the canonical Swift
+        // pattern for this conversion because AXUIElement is an opaque
+        // Core Foundation type with no Swift overlay.
         return unsafeBitCast(value, to: AXUIElement.self)
     }
 

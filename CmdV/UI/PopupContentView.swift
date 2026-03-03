@@ -380,38 +380,35 @@ struct PopupContentView: View {
     /// 4. **Keyboard selection fallback** — `selectedItemID` is used only when
     ///    `allowSelectedFallbackHighlight` is `true`, which is set by explicit
     ///    keyboard navigation or row actions, not by passive list updates.
-    private func isRowSelected(itemID: Int64) -> Bool {
-        let visibleItemIDs = viewModel.filteredItems.map(\.id)
+    /// The single highlighted item ID, resolved once per render pass.
+    ///
+    /// Resolving the highlight target as a single computed property avoids
+    /// re-computing `filteredItems.map(\.id)` inside every row's
+    /// `isRowSelected` call (O(N²) → O(N)).
+    private var highlightedItemID: Int64? {
+        let visibleItemIDs = Set(viewModel.filteredItems.map(\.id))
 
-        if contextMenuActive, let contextMenuItemID {
-            guard visibleItemIDs.contains(contextMenuItemID) else {
-                return false
-            }
-
-            return contextMenuItemID == itemID
+        if contextMenuActive, let contextMenuItemID, visibleItemIDs.contains(contextMenuItemID) {
+            return contextMenuItemID
         }
 
-        if let hoveredItemID {
-            guard visibleItemIDs.contains(hoveredItemID) else {
-                return false
-            }
-
-            return hoveredItemID == itemID
+        if let hoveredItemID, visibleItemIDs.contains(hoveredItemID) {
+            return hoveredItemID
         }
 
-        if let contextMenuItemID {
-            guard visibleItemIDs.contains(contextMenuItemID) else {
-                return false
-            }
-
-            return contextMenuItemID == itemID
+        if let contextMenuItemID, visibleItemIDs.contains(contextMenuItemID) {
+            return contextMenuItemID
         }
 
         if allowSelectedFallbackHighlight, let selectedItemID = viewModel.selectedItemID {
-            return selectedItemID == itemID
+            return selectedItemID
         }
 
-        return false
+        return nil
+    }
+
+    private func isRowSelected(itemID: Int64) -> Bool {
+        highlightedItemID == itemID
     }
 
     private var popupBackgroundColor: Color {

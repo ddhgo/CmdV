@@ -172,7 +172,7 @@ final class SettingsStore: ObservableObject {
         if let storedLanguage = defaults.string(forKey: Keys.appLanguage) {
             appLanguage = AppLanguage(rawValue: storedLanguage) ?? .english
         } else {
-            appLanguage = .korean
+            appLanguage = Self.detectSystemLanguage()
         }
         clearHistoryOnSystemRestart = defaults.object(forKey: Keys.clearHistoryOnSystemRestart) as? Bool ?? false
 
@@ -336,6 +336,14 @@ final class SettingsStore: ObservableObject {
 
     func isScreenshotHotkeyModifierEnabled(_ modifier: NSEvent.ModifierFlags) -> Bool {
         screenshotHotkey.modifiers.contains(modifier)
+    }
+
+    private static func detectSystemLanguage() -> AppLanguage {
+        let preferred = Locale.preferredLanguages.first ?? ""
+        if preferred.hasPrefix("ko") {
+            return .korean
+        }
+        return .english
     }
 
     private static func readSystemLaunchAtLoginEnabled() -> Bool {
