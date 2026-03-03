@@ -444,6 +444,6 @@ struct PopupContentView: View {
     }
 
     private var popupBrandImage: NSImage? {
-        NSImage(named: "CmdVMainLogo") ?? NSImage(named: "CmdVMenuBarTemplate")
+        NSImage(named: "CmdVMenuBarTemplate") ?? NSImage(named: "CmdVMainLogo")
     }
 }
