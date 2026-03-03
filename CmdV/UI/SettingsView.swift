@@ -324,7 +324,7 @@ struct SettingsView: View {
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(.primary)
 
-                    Text("\(AppText.value(.settingsVersion, language: language)) \(appVersionText)")
+                    Text("v\(appVersionText)")
                         .font(.system(size: 12.5, weight: .semibold))
                         .foregroundStyle(.secondary)
                 }
