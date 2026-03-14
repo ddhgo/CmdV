@@ -208,23 +208,8 @@ struct HistoryRowView: View {
 
             Spacer(minLength: 8)
 
-            VStack(alignment: .trailing, spacing: 6) {
-                HStack(spacing: 6) {
-                    if item.isPinned {
-                        Image(systemName: "pin.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.orange)
-                    }
-
-                    if item.isFavorited {
-                        Image(systemName: "star.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.yellow)
-                    }
-                }
-
-            }
-            .padding(.trailing, 2)
+            statusBadgePlaceholders
+                .padding(.trailing, 2)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -251,6 +236,11 @@ struct HistoryRowView: View {
                     updateImagePreviewHover(using: point)
                 }
             )
+        }
+        .overlay(alignment: .topTrailing) {
+            statusBadgeButtons
+                .padding(.top, 10)
+                .padding(.trailing, 12)
         }
         .overlay(alignment: .bottomTrailing) {
             menuButton
@@ -285,6 +275,98 @@ struct HistoryRowView: View {
             }
         )
         .accessibilityLabel(AppText.value(.popupMoreActions, language: language))
+    }
+
+    private var statusBadgePlaceholders: some View {
+        HStack(spacing: 6) {
+            statusBadgeIcon(systemName: "pin", color: .clear)
+                .hidden()
+            statusBadgeIcon(systemName: "star", color: .clear)
+                .hidden()
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private var statusBadgeButtons: some View {
+        HStack(spacing: 6) {
+            Button {
+                onTogglePinned(item)
+            } label: {
+                statusBadgeIcon(
+                    systemName: item.isPinned ? "pin.fill" : "pin",
+                    color: item.isPinned ? .orange : .secondary.opacity(0.45)
+                )
+            }
+            .buttonStyle(.plain)
+            .help(
+                AppText.value(
+                    item.isPinned ? .popupUnpin : .popupPin,
+                    language: language
+                )
+            )
+            .accessibilityLabel(
+                AppText.value(
+                    item.isPinned ? .popupUnpin : .popupPin,
+                    language: language
+                )
+            )
+
+            Button {
+                onToggleFavorited(item)
+            } label: {
+                statusBadgeIcon(
+                    systemName: item.isFavorited ? "star.fill" : "star",
+                    color: item.isFavorited ? .yellow : .secondary.opacity(0.45)
+                )
+            }
+            .buttonStyle(.plain)
+            .help(
+                AppText.value(
+                    item.isFavorited ? .popupUnfavorite : .popupFavorite,
+                    language: language
+                )
+            )
+            .accessibilityLabel(
+                AppText.value(
+                    item.isFavorited ? .popupUnfavorite : .popupFavorite,
+                    language: language
+                )
+            )
+        }
+    }
+
+    private func statusBadgeIcon(systemName: String, color: Color) -> some View {
+        Image(systemName: systemName)
+            .font(.caption2)
+            .foregroundStyle(color)
+            .frame(width: 16, height: 16)
+            .offset(
+                x: statusBadgeHorizontalOffset(for: systemName),
+                y: statusBadgeVerticalOffset(for: systemName)
+            )
+            .padding(2)
+            .contentShape(Rectangle())
+    }
+
+    private func statusBadgeHorizontalOffset(for systemName: String) -> CGFloat {
+        switch systemName {
+        case "pin", "pin.fill":
+            return 0.75
+        default:
+            return 0
+        }
+    }
+
+    private func statusBadgeVerticalOffset(for systemName: String) -> CGFloat {
+        switch systemName {
+        case "pin", "pin.fill":
+            return -0.5
+        case "star", "star.fill":
+            return -1.0
+        default:
+            return 0
+        }
     }
 
     @ViewBuilder
