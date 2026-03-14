@@ -120,6 +120,13 @@ Another app may be using the same shortcut. Change it in CmdV Settings → Keybo
 **Item selected but not pasted automatically**
 Grant Accessibility permission in System Settings → Privacy & Security → Accessibility.
 
+**Accessibility is enabled, but CmdV still says the permission is missing**
+- Remove CmdV from System Settings → Privacy & Security → Accessibility
+- Replace the app with the latest release build, then add CmdV again
+- If you installed with Homebrew, run `brew update && brew upgrade --cask cmdv`
+
+macOS ties Accessibility approval to the exact signed app bundle, so replacing an older build can require re-adding permission once.
+
 **Clipboard entries not showing up**
 Check that recording isn't paused (menu bar icon → Resume).
 
@@ -239,6 +246,13 @@ rm -f ~/Library/Preferences/com.cmdv.app.plist
 
 **항목을 선택했는데 자동 붙여넣기가 안 돼요**
 시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용에서 CmdV를 허용해주세요.
+
+**손쉬운 사용이 켜져 있는데도 CmdV가 권한이 없다고 나와요**
+- 시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용에서 CmdV를 삭제
+- 최신 릴리스 빌드로 앱을 교체한 뒤 CmdV를 다시 추가
+- Homebrew 설치였다면 `brew update && brew upgrade --cask cmdv` 실행
+
+macOS는 손쉬운 사용 허용 상태를 "현재 설치된 서명된 앱 번들" 기준으로 묶어두기 때문에, 이전 빌드를 교체한 뒤 한 번 더 추가해야 할 수 있습니다.
 
 **복사한 내용이 목록에 안 나와요**
 기록이 일시정지 상태인지 확인하세요. 메뉴바 아이콘을 클릭해서 활성화할 수 있습니다.

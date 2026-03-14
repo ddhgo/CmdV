@@ -268,6 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 targetFocusedWindow: self.previousFocusedWindow,
                 completion: { [weak self] outcome in
                     if case .failedToCopy = outcome {
+                        self?.restorePreviousActiveApplication()
                         NSSound.beep()
                     }
 
