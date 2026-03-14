@@ -173,7 +173,11 @@ fi
 if [[ "$dry_run" -eq 1 ]]; then
   echo "[dry-run] Skipping package build. Reusing existing release artifacts."
 else
-  "$root_dir/scripts/package_release.sh" "${package_args[@]}"
+  if [[ "${#package_args[@]}" -gt 0 ]]; then
+    "$root_dir/scripts/package_release.sh" "${package_args[@]}"
+  else
+    "$root_dir/scripts/package_release.sh"
+  fi
 fi
 
 app_path="$root_dir/build/codex-release/Build/Products/Release/CmdV.app"
