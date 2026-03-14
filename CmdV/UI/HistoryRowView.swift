@@ -14,13 +14,53 @@ private enum RelativeTime {
     }
 }
 
-private final class ThumbnailCache {
+final class ThumbnailCache {
     static let shared = NSCache<NSString, NSImage>()
 }
 
-private enum ThumbnailProvider {
+final class ImageSizeCache {
+    static let shared = NSCache<NSString, NSValue>()
+}
+
+enum ThumbnailMetrics {
+    static let thumbnailSize = CGSize(width: 64, height: 46)
+    static let previewScale: CGFloat = 6
+    static let previewCornerRadius: CGFloat = 8
+    static let expandedCornerRadius: CGFloat = 14
+    static let thumbnailMaxPixelSize = 220
+    static let expandedMaxPixelSize = 960
+
+    static var expandedBoundingSize: CGSize {
+        CGSize(
+            width: thumbnailSize.width * previewScale,
+            height: thumbnailSize.height * previewScale
+        )
+    }
+
+    static func expandedSize(for imageSize: CGSize) -> CGSize {
+        guard imageSize.width > 0, imageSize.height > 0 else {
+            return expandedBoundingSize
+        }
+
+        let widthScale = expandedBoundingSize.width / imageSize.width
+        let heightScale = expandedBoundingSize.height / imageSize.height
+        let scale = min(widthScale, heightScale)
+
+        return CGSize(
+            width: imageSize.width * scale,
+            height: imageSize.height * scale
+        )
+    }
+}
+
+enum ThumbnailPreviewAnimation {
+    static let hover = Animation.spring(response: 0.28, dampingFraction: 0.84, blendDuration: 0.16)
+}
+
+enum ThumbnailProvider {
     static func thumbnail(for path: String, maxPixelSize: Int = 220) -> NSImage? {
-        if let cached = ThumbnailCache.shared.object(forKey: NSString(string: path)) {
+        let cacheKey = NSString(string: "\(path)#\(maxPixelSize)")
+        if let cached = ThumbnailCache.shared.object(forKey: cacheKey) {
             return cached
         }
 
@@ -40,9 +80,45 @@ private enum ThumbnailProvider {
         }
 
         let image = NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
-        ThumbnailCache.shared.setObject(image, forKey: NSString(string: path))
+        ThumbnailCache.shared.setObject(image, forKey: cacheKey)
         return image
     }
+
+    static func imageSize(for path: String) -> CGSize? {
+        let cacheKey = NSString(string: path)
+        if let cached = ImageSizeCache.shared.object(forKey: cacheKey) {
+            return cached.sizeValue
+        }
+
+        let url = URL(fileURLWithPath: path)
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.doubleValue,
+              let height = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.doubleValue
+        else {
+            return nil
+        }
+
+        let size = CGSize(width: width, height: height)
+        ImageSizeCache.shared.setObject(NSValue(size: size), forKey: cacheKey)
+        return size
+    }
+}
+
+struct HoveredThumbnailPreview: Equatable {
+    let itemID: Int64
+    let imagePath: String
+    let popupFrame: CGRect
+    let previewSize: CGSize
+}
+
+private struct ThumbnailFrameSnapshot: Equatable {
+    var localFrame: CGRect = .zero
+    var popupFrame: CGRect = .zero
+}
+
+private enum HistoryRowLayout {
+    static let coordinateSpace = "HistoryRowCoordinate"
 }
 
 struct HistoryRowView: View {
@@ -58,12 +134,32 @@ struct HistoryRowView: View {
     let onTogglePinned: (ClipboardItem) -> Void
     let onToggleFavorited: (ClipboardItem) -> Void
     let onDelete: (ClipboardItem) -> Void
+    let onImagePreviewChanged: (HoveredThumbnailPreview?) -> Void
+    @State private var isImagePreviewHovered = false
+    @State private var thumbnailFrames = ThumbnailFrameSnapshot()
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             if item.type == .image {
                 if let imagePath = item.imagePath {
                     ThumbnailImageView(path: imagePath)
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear.preference(
+                                    key: ThumbnailFramesPreferenceKey.self,
+                                    value: ThumbnailFrameSnapshot(
+                                        localFrame: proxy.frame(in: .named(HistoryRowLayout.coordinateSpace)),
+                                        popupFrame: proxy.frame(in: .named(PopupLayout.imagePreviewCoordinateSpace))
+                                    )
+                                )
+                            }
+                        )
+                        .onPreferenceChange(ThumbnailFramesPreferenceKey.self) { frames in
+                            thumbnailFrames = frames
+                            if isImagePreviewHovered {
+                                publishImagePreviewIfNeeded()
+                            }
+                        }
                 }
             } else if item.type == .file {
                 fileIcon
@@ -150,6 +246,9 @@ struct HistoryRowView: View {
                 },
                 onHoverChanged: { isHovering in
                     onHoverChanged(item, isHovering)
+                },
+                onPointerLocationChanged: { point in
+                    updateImagePreviewHover(using: point)
                 }
             )
         }
@@ -160,6 +259,12 @@ struct HistoryRowView: View {
         }
         .contextMenu {
             rowMenuItems
+        }
+        .coordinateSpace(name: HistoryRowLayout.coordinateSpace)
+        .onDisappear {
+            if isImagePreviewHovered {
+                onImagePreviewChanged(nil)
+            }
         }
     }
 
@@ -277,7 +382,7 @@ struct HistoryRowView: View {
                 .fill(
                     CmdVTheme.Colors.controlSurface
                 )
-                .frame(width: 36, height: 36)
+                .frame(width: ThumbnailMetrics.thumbnailSize.width, height: ThumbnailMetrics.thumbnailSize.height)
             Image(systemName: "doc.fill")
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(.white)
@@ -290,18 +395,63 @@ struct HistoryRowView: View {
             onShare(item)
         }
     }
+
+    private func updateImagePreviewHover(using point: CGPoint?) {
+        let shouldMagnify = point.map(thumbnailFrames.localFrame.contains) ?? false
+        guard shouldMagnify != isImagePreviewHovered else {
+            return
+        }
+
+        withAnimation(ThumbnailPreviewAnimation.hover) {
+            isImagePreviewHovered = shouldMagnify
+            publishImagePreviewIfNeeded()
+        }
+    }
+
+    private func publishImagePreviewIfNeeded() {
+        guard item.type == .image, let imagePath = item.imagePath else {
+            onImagePreviewChanged(nil)
+            return
+        }
+
+        guard isImagePreviewHovered, thumbnailFrames.popupFrame != .zero else {
+            onImagePreviewChanged(nil)
+            return
+        }
+
+        onImagePreviewChanged(
+            HoveredThumbnailPreview(
+                itemID: item.id,
+                imagePath: imagePath,
+                popupFrame: thumbnailFrames.popupFrame,
+                previewSize: ThumbnailMetrics.expandedSize(
+                    for: ThumbnailProvider.imageSize(for: imagePath) ?? ThumbnailMetrics.expandedBoundingSize
+                )
+            )
+        )
+    }
+}
+
+private struct ThumbnailFramesPreferenceKey: PreferenceKey {
+    static let defaultValue = ThumbnailFrameSnapshot()
+
+    static func reduce(value: inout ThumbnailFrameSnapshot, nextValue: () -> ThumbnailFrameSnapshot) {
+        value = nextValue()
+    }
 }
 
 private struct SecondaryClickCaptureView: NSViewRepresentable {
     let onSecondaryClick: () -> Void
     let onMenuClose: () -> Void
     let onHoverChanged: (Bool) -> Void
+    let onPointerLocationChanged: (CGPoint?) -> Void
 
     func makeNSView(context: Context) -> SecondaryClickCaptureNSView {
         let view = SecondaryClickCaptureNSView()
         view.onSecondaryClick = onSecondaryClick
         view.onMenuClose = onMenuClose
         view.onHoverChanged = onHoverChanged
+        view.onPointerLocationChanged = onPointerLocationChanged
         return view
     }
 
@@ -309,6 +459,7 @@ private struct SecondaryClickCaptureView: NSViewRepresentable {
         nsView.onSecondaryClick = onSecondaryClick
         nsView.onMenuClose = onMenuClose
         nsView.onHoverChanged = onHoverChanged
+        nsView.onPointerLocationChanged = onPointerLocationChanged
     }
 }
 
@@ -316,6 +467,7 @@ private final class SecondaryClickCaptureNSView: NSView {
     var onSecondaryClick: (() -> Void)?
     var onMenuClose: (() -> Void)?
     var onHoverChanged: ((Bool) -> Void)?
+    var onPointerLocationChanged: ((CGPoint?) -> Void)?
     private var trackingArea: NSTrackingArea?
     private var isPointerInside = false
     private var menuObserver: NSObjectProtocol?
@@ -382,11 +534,13 @@ private final class SecondaryClickCaptureNSView: NSView {
     }
 
     override func mouseEntered(with event: NSEvent) {
+        onPointerLocationChanged?(convert(event.locationInWindow, from: nil))
         setHover(true)
         super.mouseEntered(with: event)
     }
 
     override func mouseExited(with event: NSEvent) {
+        onPointerLocationChanged?(nil)
         setHover(false)
         super.mouseExited(with: event)
     }
@@ -405,13 +559,16 @@ private final class SecondaryClickCaptureNSView: NSView {
     /// tracking, leaving `isPointerInside` stale after the menu dismisses.
     private func refreshHoverStateFromPointer() {
         guard let window else {
+            onPointerLocationChanged?(nil)
             setHover(false)
             return
         }
 
         let locationInWindow = window.mouseLocationOutsideOfEventStream
         let locationInView = convert(locationInWindow, from: nil)
-        setHover(bounds.contains(locationInView))
+        let isInside = bounds.contains(locationInView)
+        onPointerLocationChanged?(isInside ? locationInView : nil)
+        setHover(isInside)
     }
 
     /// Updates the stored hover state and notifies the callback only when the
@@ -441,6 +598,7 @@ private struct ThumbnailImageView: View {
             if let image {
                 Image(nsImage: image)
                     .resizable()
+                    .interpolation(.high)
                     .scaledToFill()
             } else {
                 Rectangle()
@@ -451,27 +609,39 @@ private struct ThumbnailImageView: View {
                     )
             }
         }
-        .frame(width: 64, height: 46)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .frame(
+            width: ThumbnailMetrics.thumbnailSize.width,
+            height: ThumbnailMetrics.thumbnailSize.height
+        )
+        .clipShape(
+            RoundedRectangle(cornerRadius: ThumbnailMetrics.previewCornerRadius, style: .continuous)
+        )
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: ThumbnailMetrics.previewCornerRadius, style: .continuous)
                 .stroke(CmdVTheme.Colors.subtleStroke, lineWidth: 1)
         )
         .onAppear {
-            guard image == nil else {
-                return
-            }
-
-            DispatchQueue.global(qos: .userInitiated).async {
-                let loadedImage = ThumbnailProvider.thumbnail(for: path)
-                DispatchQueue.main.async {
-                    image = loadedImage
-                }
-            }
+            loadThumbnailIfNeeded()
         }
     }
 
     private var rowBackgroundColor: Color {
         CmdVTheme.Colors.controlSurface
+    }
+
+    private func loadThumbnailIfNeeded() {
+        guard image == nil else {
+            return
+        }
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            let loadedImage = ThumbnailProvider.thumbnail(
+                for: path,
+                maxPixelSize: ThumbnailMetrics.thumbnailMaxPixelSize
+            )
+            DispatchQueue.main.async {
+                image = loadedImage
+            }
+        }
     }
 }

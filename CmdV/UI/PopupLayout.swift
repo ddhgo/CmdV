@@ -5,4 +5,5 @@ enum PopupLayout {
     static let defaultHeight: CGFloat = 460
     static let minimumWidth: CGFloat = 420
     static let minimumHeight: CGFloat = 320
+    static let imagePreviewCoordinateSpace = "PopupImagePreviewSpace"
 }

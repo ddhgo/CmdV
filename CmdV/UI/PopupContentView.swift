@@ -14,22 +14,28 @@ struct PopupContentView: View {
     @State private var contextMenuActive = false
     @State private var allowSelectedFallbackHighlight = false
     @State private var lastExplicitSelectionToken = 0
+    @State private var hoveredThumbnailPreview: HoveredThumbnailPreview?
     private let popupCornerRadius: CGFloat = 16
 
     var body: some View {
-        VStack(spacing: 8) {
-            if viewModel.isRecordingPaused {
-                recordingDisabledBanner
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 8) {
+                if viewModel.isRecordingPaused {
+                    recordingDisabledBanner
+                }
+
+                if viewModel.showsPermissionBanner {
+                    permissionBanner
+                }
+
+                searchHeader
+                dividerLine
+                contentList
             }
 
-            if viewModel.showsPermissionBanner {
-                permissionBanner
-            }
-
-            searchHeader
-            dividerLine
-            contentList
+            floatingImagePreviewOverlay
         }
+        .coordinateSpace(name: PopupLayout.imagePreviewCoordinateSpace)
         .padding(12)
         .frame(minWidth: PopupLayout.minimumWidth, minHeight: PopupLayout.minimumHeight)
         .background(
@@ -41,6 +47,7 @@ struct PopupContentView: View {
             hoveredItemID = nil
             contextMenuActive = false
             allowSelectedFallbackHighlight = false
+            hoveredThumbnailPreview = nil
             lastExplicitSelectionToken = viewModel.explicitSelectionToken
             viewModel.selectFirstIfNeeded()
             searchFocused = true
@@ -261,6 +268,7 @@ struct PopupContentView: View {
                                     hoveredItemID = openedItem.id
                                     contextMenuActive = true
                                     allowSelectedFallbackHighlight = true
+                                    hoveredThumbnailPreview = nil
                                 },
                                 onMenuClose: {
                                     contextMenuActive = false
@@ -313,10 +321,18 @@ struct PopupContentView: View {
                                     if hoveredItemID == deletedItem.id {
                                         hoveredItemID = nil
                                     }
+                                    if hoveredThumbnailPreview?.itemID == deletedItem.id {
+                                        hoveredThumbnailPreview = nil
+                                    }
                                     contextMenuItemID = nil
                                     contextMenuActive = false
                                     allowSelectedFallbackHighlight = true
                                     viewModel.delete(itemID: deletedItem.id)
+                                },
+                                onImagePreviewChanged: { preview in
+                                    withAnimation(ThumbnailPreviewAnimation.hover) {
+                                        hoveredThumbnailPreview = preview
+                                    }
                                 }
                             )
                                 .contentShape(Rectangle())
@@ -325,8 +341,9 @@ struct PopupContentView: View {
                                 contextMenuItemID = nil
                                 hoveredItemID = item.id
                                 allowSelectedFallbackHighlight = true
-                                    onConfirm(item)
-                                }
+                                hoveredThumbnailPreview = nil
+                                onConfirm(item)
+                            }
                                 .id(item.id)
                         }
                     }
@@ -365,6 +382,7 @@ struct PopupContentView: View {
         hoveredItemID = item.id
         contextMenuActive = false
         allowSelectedFallbackHighlight = true
+        hoveredThumbnailPreview = nil
     }
 
     /// Determines whether a row should render in the highlighted/selected style.
@@ -445,5 +463,108 @@ struct PopupContentView: View {
 
     private var popupBrandImage: NSImage? {
         NSImage(named: "CmdVMenuBarTemplate") ?? NSImage(named: "CmdVMainLogo")
+    }
+
+    private var floatingImagePreviewOverlay: some View {
+        GeometryReader { proxy in
+            if let hoveredThumbnailPreview {
+                FloatingImagePreview(
+                    path: hoveredThumbnailPreview.imagePath,
+                    previewSize: hoveredThumbnailPreview.previewSize
+                )
+                    .offset(
+                        x: previewOriginX(for: hoveredThumbnailPreview, containerSize: proxy.size),
+                        y: previewOriginY(for: hoveredThumbnailPreview, containerSize: proxy.size)
+                    )
+                    .zIndex(200)
+            }
+        }
+        .allowsHitTesting(false)
+    }
+
+    private func previewOriginX(for preview: HoveredThumbnailPreview, containerSize: CGSize) -> CGFloat {
+        let edgeInset: CGFloat = 6
+        let preferredX = preview.popupFrame.minX
+        let maximumX = max(edgeInset, containerSize.width - preview.previewSize.width - edgeInset)
+        return min(max(edgeInset, preferredX), maximumX)
+    }
+
+    private func previewOriginY(for preview: HoveredThumbnailPreview, containerSize: CGSize) -> CGFloat {
+        let edgeInset: CGFloat = 6
+        let preferredY = preview.popupFrame.midY - (preview.previewSize.height / 2)
+        let maximumY = max(edgeInset, containerSize.height - preview.previewSize.height - edgeInset)
+        return min(max(edgeInset, preferredY), maximumY)
+    }
+}
+
+private struct FloatingImagePreview: View {
+    let path: String
+    let previewSize: CGSize
+
+    @State private var image: NSImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+            } else {
+                Rectangle()
+                    .fill(CmdVTheme.Colors.controlSurface)
+                    .overlay(
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                    )
+            }
+        }
+        .frame(
+            width: previewSize.width,
+            height: previewSize.height
+        )
+        .background(
+            RoundedRectangle(
+                cornerRadius: ThumbnailMetrics.expandedCornerRadius,
+                style: .continuous
+            )
+            .fill(CmdVTheme.Colors.windowSurface)
+        )
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: ThumbnailMetrics.expandedCornerRadius,
+                style: .continuous
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: ThumbnailMetrics.expandedCornerRadius,
+                style: .continuous
+            )
+            .stroke(CmdVTheme.Colors.surfaceStroke, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.3), radius: 18, x: 0, y: 10)
+        .transition(
+            .asymmetric(
+                insertion: .opacity.combined(with: .scale(scale: 0.94, anchor: .topLeading)),
+                removal: .opacity.combined(with: .scale(scale: 0.94, anchor: .topLeading))
+            )
+        )
+        .task(id: path) {
+            image = nil
+            loadImage()
+        }
+    }
+
+    private func loadImage() {
+        DispatchQueue.global(qos: .userInitiated).async {
+            let loadedImage = ThumbnailProvider.thumbnail(
+                for: path,
+                maxPixelSize: ThumbnailMetrics.expandedMaxPixelSize
+            )
+            DispatchQueue.main.async {
+                image = loadedImage
+            }
+        }
     }
 }
