@@ -30,6 +30,13 @@ brew tap ddhgo/cmdv
 brew install --cask cmdv
 ```
 
+Update an existing Homebrew installation:
+
+```bash
+brew update
+brew upgrade --cask cmdv
+```
+
 #### 2) Install from release
 
 1. Download `CmdV-v*.zip` from [latest release](https://github.com/ddhgo/CmdV/releases/latest)
@@ -141,6 +148,13 @@ CmdV는 복사한 모든 내용을 자동으로 기록하는 클립보드 관리
 ```bash
 brew tap ddhgo/cmdv
 brew install --cask cmdv
+```
+
+기존 Homebrew 설치를 업데이트하려면:
+
+```bash
+brew update
+brew upgrade --cask cmdv
 ```
 
 #### 2) 릴리스 설치
