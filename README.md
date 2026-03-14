@@ -44,6 +44,21 @@ brew install --cask cmdv
 2. Open `CmdV.xcodeproj` in Xcode
 3. Select the `CmdV` target and run (`Cmd + R`)
 
+### Uninstall / Complete removal
+
+If you installed CmdV with Homebrew and want to remove it completely:
+
+```bash
+brew uninstall --cask cmdv
+brew untap ddhgo/cmdv
+rm -rf ~/Library/Application\ Support/CmdV
+rm -f ~/Library/Preferences/com.cmdv.app.plist
+```
+
+Optional cleanup:
+- If **Launch at Login** was enabled, remove CmdV from System Settings → General → Login Items if it is still listed.
+- If you granted **Accessibility** permission, remove CmdV from System Settings → Privacy & Security → Accessibility.
+
 ### Usage
 
 1. Launch CmdV — it appears in the menu bar
@@ -141,6 +156,21 @@ brew install --cask cmdv
 1. 이 저장소를 클론
 2. Xcode에서 `CmdV.xcodeproj` 열기
 3. `CmdV` 타깃 선택 후 실행 (`Cmd + R`)
+
+### 삭제 / 완전 제거
+
+Homebrew로 설치한 CmdV를 완전히 지우려면 아래 순서대로 실행하세요.
+
+```bash
+brew uninstall --cask cmdv
+brew untap ddhgo/cmdv
+rm -rf ~/Library/Application\ Support/CmdV
+rm -f ~/Library/Preferences/com.cmdv.app.plist
+```
+
+추가 정리:
+- **로그인 시 자동 실행**을 켜둔 경우, 시스템 설정 → 일반 → 로그인 항목에서 CmdV가 남아 있으면 제거하세요.
+- **손쉬운 사용 권한**을 허용한 경우, 시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용에서 CmdV를 제거하세요.
 
 ### 사용법
 
