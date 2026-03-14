@@ -122,26 +122,32 @@ Optional cleanup:
 
 ### Troubleshooting
 
-**"CmdV.app" cannot be opened because Apple cannot check it for malicious software**
+#### "CmdV.app" cannot be opened because Apple cannot check it for malicious software
+
 This build is not notarized. Use one of the methods below:
+
 - Finder: Right-click `CmdV.app` → **Open** → **Open**
 - Terminal:
   `xattr -dr com.apple.quarantine /Applications/CmdV.app`
 
-**Hotkey doesn't work**
+#### Hotkey doesn't work
+
 Another app may be using the same shortcut. Change it in CmdV Settings → Keyboard Shortcuts.
 
-**Item selected but not pasted automatically**
+#### Item selected but not pasted automatically
+
 Grant Accessibility permission in System Settings → Privacy & Security → Accessibility.
 
-**Accessibility is enabled, but CmdV still says the permission is missing**
+#### Accessibility is enabled, but CmdV still says the permission is missing
+
 - Remove CmdV from System Settings → Privacy & Security → Accessibility
 - Replace the app with the latest release build, then add CmdV again
 - If you installed with Homebrew, run `brew update && brew upgrade --cask cmdv`
 
 macOS ties Accessibility approval to the exact signed app bundle, so replacing an older build can require re-adding permission once.
 
-**Clipboard entries not showing up**
+#### Clipboard entries not showing up
+
 Check that recording isn't paused (menu bar icon → Resume).
 
 ### Support
@@ -263,22 +269,27 @@ rm -f ~/Library/Preferences/com.cmdv.app.plist
 
 ### 문제 해결
 
-**"CmdV.app"을(를) 열 수 없다는 경고가 떠요**
+#### "CmdV.app"을(를) 열 수 없다는 경고가 떠요
+
 공증(notarization)되지 않은 빌드라 macOS에서 첫 실행을 막을 수 있습니다.
 아래 방법 중 하나로 실행해 주세요.
+
 - Finder에서 `CmdV.app` 우클릭 → **열기** → **열기**
 - 터미널에서 실행:
   `xattr -dr com.apple.quarantine /Applications/CmdV.app`
 
-**단축키가 안 돼요**
+#### 단축키가 안 돼요
+
 다른 앱이 같은 단축키를 사용 중일 수 있습니다.
 CmdV 설정 → 단축키에서 다른 조합으로 바꿔보세요.
 
-**항목을 선택했는데 자동 붙여넣기가 안 돼요**
+#### 항목을 선택했는데 자동 붙여넣기가 안 돼요
+
 자동 붙여넣기를 사용하려면 손쉬운 사용 권한이 필요합니다.
 시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용에서 CmdV를 허용해 주세요.
 
-**손쉬운 사용이 켜져 있는데도 CmdV가 권한이 없다고 나와요**
+#### 손쉬운 사용이 켜져 있는데도 CmdV가 권한이 없다고 나와요
+
 - 시스템 설정 → 개인 정보 보호 및 보안 → 손쉬운 사용에서 CmdV를 삭제
 - 최신 릴리스 빌드로 앱을 교체한 뒤 CmdV를 다시 추가
 - Homebrew 설치였다면 `brew update && brew upgrade --cask cmdv` 실행
@@ -286,7 +297,8 @@ CmdV 설정 → 단축키에서 다른 조합으로 바꿔보세요.
 macOS는 손쉬운 사용 권한을 "현재 설치된 서명된 앱 번들" 기준으로 저장합니다.
 그래서 이전 빌드를 교체한 뒤에는 권한을 한 번 더 추가해야 할 수 있습니다.
 
-**복사한 내용이 목록에 안 나와요**
+#### 복사한 내용이 목록에 안 나와요
+
 기록이 일시정지 상태인지 먼저 확인해 주세요.
 메뉴바 아이콘을 클릭하면 다시 활성화할 수 있습니다.
 
