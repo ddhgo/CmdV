@@ -23,6 +23,20 @@ No more losing that thing you copied two pastes ago.
 
 **Requirements:** macOS 13.0 or later
 
+If you do not have Homebrew installed yet, install it first from the official Homebrew site:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Then reopen Terminal and confirm Homebrew is available:
+
+```bash
+brew --version
+```
+
+Official Homebrew install guide: [brew.sh](https://brew.sh/)
+
 #### 1) Homebrew (recommended)
 
 ```bash
@@ -149,6 +163,20 @@ CmdV는 복사한 모든 내용을 자동으로 기록하는 클립보드 관리
 ### 설치
 
 **요구 사항:** macOS 13.0 이상
+
+Homebrew가 아직 설치되어 있지 않다면 먼저 공식 안내대로 설치하세요:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+설치 후에는 터미널을 다시 열고 아래로 정상 설치 여부를 확인하세요:
+
+```bash
+brew --version
+```
+
+공식 Homebrew 설치 안내: [brew.sh](https://brew.sh/)
 
 #### 1) Homebrew (권장)
 
