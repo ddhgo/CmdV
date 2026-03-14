@@ -93,8 +93,7 @@ Optional cleanup:
 - **Instant search** — type to filter through your history
 - **Pin items** — keep important clips at the top of your history list
 - **Favorites tab** — star items and manage them in a separate tab
-- **Clipboard capture hotkey** — capture a selected screen area directly to clipboard
-- **Configurable** — language, launch at login, hotkeys, history capacity, polling interval, and more
+- **Configurable** — language, launch at login, shortcut, history capacity, polling interval, and more
 - **No telemetry** — nothing leaves your Mac. Ever.
 
 ### Keyboard Shortcuts
@@ -102,7 +101,6 @@ Optional cleanup:
 | Key | Action |
 |-----|--------|
 | `Option + V` | Open / close clipboard history |
-| `Option + Shift + S` | Clipboard capture |
 
 > All shortcuts are customizable in Settings.
 
@@ -256,7 +254,6 @@ rm -f ~/Library/Preferences/com.cmdv.app.plist
 - **즉시 검색** — 키워드를 입력하면 바로 필터링
 - **고정** — 자주 쓰는 항목을 목록 맨 위에 고정
 - **즐겨찾기** — 중요한 항목을 별도 탭에서 모아보기
-- **클립보드 캡처** — 선택 영역을 캡처해서 클립보드에 바로 저장
 - **세부 설정** — 언어, 로그인 시 자동 실행, 단축키, 저장 개수, 폴링 주기 등
 - **완전 로컬** — 데이터가 외부로 전송되지 않음
 
@@ -265,7 +262,6 @@ rm -f ~/Library/Preferences/com.cmdv.app.plist
 | 키 | 동작 |
 |----|------|
 | `Option + V` | 클립보드 기록 창 열기 / 닫기 |
-| `Option + Shift + S` | 클립보드 캡처 |
 
 > 모든 단축키는 설정에서 변경할 수 있습니다.
 

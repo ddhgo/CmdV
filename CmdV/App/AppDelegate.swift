@@ -3,19 +3,12 @@ import ApplicationServices
 import Combine
 import Darwin
 import Foundation
-import OSLog
-
-final class AppRuntimeState: ObservableObject {
-    @Published var hotkeyRegistrationFailed: Bool = false
-    @Published var screenshotHotkeyRegistrationFailed: Bool = false
-}
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private static let lastSeenBootSessionKey = "runtime.lastSeenBootSession"
 
     private let settings = SettingsStore()
     private let permissions = PermissionsService()
-    private let runtimeState = AppRuntimeState()
 
     private var historyStore: HistoryStore?
     private var clipboardMonitor: ClipboardMonitor?
@@ -26,8 +19,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarController: StatusBarController?
     private let spotlightAliasIndexer = SpotlightAliasIndexer()
     private let hotkeyManager = HotkeyManager()
-    private let screenshotHotkeyManager = HotkeyManager(signature: "CCSC")
-    private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.cmdv.app", category: "AppDelegate")
 
     private var previousActiveApplication: NSRunningApplication?
     private var previousFocusedElement: AXUIElement?
@@ -79,7 +70,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindowController = SettingsWindowController(
             settings: settings,
             permissions: permissions,
-            runtimeState: runtimeState,
             onClearHistory: { [weak self] in
                 self?.historyStore?.clearHistory()
             }
@@ -112,13 +102,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         bindState()
         registerHotkey()
-        registerScreenshotHotkey()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         clipboardMonitor?.stop()
         hotkeyManager.unregister()
-        screenshotHotkeyManager.unregister()
         stopTrackingLastActiveApplication()
     }
 
@@ -133,14 +121,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
                 self.statusBarController?.updateHotkey(hotkey)
                 self.registerHotkey()
-            }
-            .store(in: &cancellables)
-
-        settings.$screenshotHotkey
-            .dropFirst()
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] _ in
-                self?.registerScreenshotHotkey()
             }
             .store(in: &cancellables)
 
@@ -178,7 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func registerHotkey() {
         let hotkey = settings.hotkey
-        let didRegister = hotkeyManager.register(hotkey: hotkey) { [weak self] in
+        _ = hotkeyManager.register(hotkey: hotkey) { [weak self] in
             guard let self else {
                 return
             }
@@ -188,46 +168,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
             self.togglePopup()
-        }
-        runtimeState.hotkeyRegistrationFailed = !didRegister
-    }
-
-    private func registerScreenshotHotkey() {
-        let hotkey = settings.screenshotHotkey
-        let didRegister = screenshotHotkeyManager.register(hotkey: hotkey) { [weak self] in
-            self?.takeScreenshotToClipboard()
-        }
-        runtimeState.screenshotHotkeyRegistrationFailed = !didRegister
-    }
-
-    private func takeScreenshotToClipboard() {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-        process.arguments = ["-i", "-c"]
-
-        let stderrPipe = Pipe()
-        process.standardError = stderrPipe
-
-        do {
-            try process.run()
-        } catch {
-            logger.error("Unable to launch screenshot capture: \(error.localizedDescription, privacy: .public)")
-            NSSound.beep()
-            return
-        }
-
-        DispatchQueue.global(qos: .utility).async { [logger] in
-            process.waitUntilExit()
-
-            guard process.terminationStatus != 0 else {
-                return
-            }
-
-            let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
-            let stderrText = String(data: stderrData, encoding: .utf8) ?? ""
-            logger.warning(
-                "screencapture exited with status \(process.terminationStatus): \(stderrText, privacy: .public)"
-            )
         }
     }
 

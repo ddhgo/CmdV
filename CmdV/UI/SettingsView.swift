@@ -6,7 +6,6 @@ struct SettingsView: View {
 
     @ObservedObject var settings: SettingsStore
     @ObservedObject var permissions: PermissionsService
-    @ObservedObject var runtimeState: AppRuntimeState
 
     let onClearHistory: () -> Void
     let onClose: () -> Void
@@ -483,31 +482,17 @@ struct SettingsView: View {
 
     private var hotkeySection: some View {
         settingsCard(title: AppText.value(.settingsGlobalHotkey, language: language)) {
-            VStack(alignment: .leading, spacing: 10) {
-                hotkeyRow(
-                    title: AppText.value(.settingsOpenClipboardWindow, language: language),
-                    keyCode: settings.hotkey.keyCode,
-                    isModifierEnabled: settings.isHotkeyModifierEnabled,
-                    selectedModifierCount: shortcutModifierCount(
-                        isModifierEnabled: settings.isHotkeyModifierEnabled
-                    ),
-                    maxModifierCount: 2,
-                    setModifier: settings.setHotkeyModifier,
-                    setKeyCode: settings.setHotkeyKeyCode
-                )
-
-                hotkeyRow(
-                    title: AppText.value(.settingsScreenshotHotkey, language: language),
-                    keyCode: settings.screenshotHotkey.keyCode,
-                    isModifierEnabled: settings.isScreenshotHotkeyModifierEnabled,
-                    selectedModifierCount: shortcutModifierCount(
-                        isModifierEnabled: settings.isScreenshotHotkeyModifierEnabled
-                    ),
-                    maxModifierCount: 3,
-                    setModifier: settings.setScreenshotHotkeyModifier,
-                    setKeyCode: settings.setScreenshotHotkeyKeyCode
-                )
-            }
+            hotkeyRow(
+                title: AppText.value(.settingsOpenClipboardWindow, language: language),
+                keyCode: settings.hotkey.keyCode,
+                isModifierEnabled: settings.isHotkeyModifierEnabled,
+                selectedModifierCount: shortcutModifierCount(
+                    isModifierEnabled: settings.isHotkeyModifierEnabled
+                ),
+                maxModifierCount: 2,
+                setModifier: settings.setHotkeyModifier,
+                setKeyCode: settings.setHotkeyKeyCode
+            )
         }
     }
 

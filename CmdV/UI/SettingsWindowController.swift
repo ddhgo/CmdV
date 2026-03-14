@@ -4,7 +4,6 @@ import SwiftUI
 final class SettingsWindowController {
     private let settings: SettingsStore
     private let permissions: PermissionsService
-    private let runtimeState: AppRuntimeState
     private let onClearHistory: () -> Void
 
     private var window: NSWindow?
@@ -17,12 +16,10 @@ final class SettingsWindowController {
     init(
         settings: SettingsStore,
         permissions: PermissionsService,
-        runtimeState: AppRuntimeState,
         onClearHistory: @escaping () -> Void
     ) {
         self.settings = settings
         self.permissions = permissions
-        self.runtimeState = runtimeState
         self.onClearHistory = onClearHistory
     }
 
@@ -43,7 +40,6 @@ final class SettingsWindowController {
         let rootView = SettingsView(
             settings: settings,
             permissions: permissions,
-            runtimeState: runtimeState,
             onClearHistory: onClearHistory,
             onClose: { [weak self] in
                 self?.window?.orderOut(nil)
