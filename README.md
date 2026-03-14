@@ -158,6 +158,22 @@ Found a bug or have a feature request?
 Like CmdV? Support development:
 → [Buy me a coffee](https://buymeacoffee.com/ddhgo)
 
+### Maintainer Release Flow
+
+After bumping the app version and committing the release changes, run:
+
+```bash
+scripts/publish_release.sh
+```
+
+This packages the release, pushes the current branch and `v<version>` tag, creates or updates the GitHub release, and syncs the Homebrew cask in `ddhgo/homebrew-cmdv`.
+
+If you already have fresh release artifacts, reuse them with:
+
+```bash
+scripts/publish_release.sh --skip-build
+```
+
 ---
 
 ## 한국어
@@ -309,6 +325,22 @@ macOS는 손쉬운 사용 권한을 "현재 설치된 서명된 앱 번들" 기�
 
 CmdV가 마음에 드셨다면:
 → [커피 한 잔 사주기](https://buymeacoffee.com/ddhgo)
+
+### 유지보수용 릴리스 배포
+
+앱 버전을 올리고 릴리스 변경사항을 커밋한 뒤 아래 명령을 실행하세요.
+
+```bash
+scripts/publish_release.sh
+```
+
+이 스크립트는 릴리스 패키징, 현재 브랜치와 `v<version>` 태그 푸시, GitHub 릴리스 생성 또는 갱신, `ddhgo/homebrew-cmdv` Homebrew cask 동기화까지 한 번에 처리합니다.
+
+이미 최신 릴리스 아티팩트를 만들어둔 상태라면 아래처럼 재사용할 수 있습니다.
+
+```bash
+scripts/publish_release.sh --skip-build
+```
 
 ---
 
