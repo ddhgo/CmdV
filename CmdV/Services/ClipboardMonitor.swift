@@ -98,6 +98,8 @@ final class ClipboardMonitor {
     private var _lastChangeCount: Int
     private var isProcessingPayload: Bool = false
     private var cancellables: Set<AnyCancellable> = []
+    private var lastFrontmostBundleID: String?
+    private var workspaceObserver: Any?
 
     private struct PasteboardPayloadSnapshot {
         let fileURLs: [URL]
@@ -123,6 +125,18 @@ final class ClipboardMonitor {
         self.settings = settings
         self.frontmostBundleIDProvider = frontmostBundleIDProvider
         _lastChangeCount = pasteboardReader.changeCount
+        lastFrontmostBundleID = frontmostBundleIDProvider()
+
+        workspaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else {
+                return
+            }
+            self?.lastFrontmostBundleID = app.bundleIdentifier
+        }
 
         settings.$pollingInterval
             .dropFirst()
@@ -139,6 +153,10 @@ final class ClipboardMonitor {
     func stop() {
         timer?.invalidate()
         timer = nil
+        if let workspaceObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(workspaceObserver)
+            self.workspaceObserver = nil
+        }
     }
 
     func pollNow() {
@@ -191,7 +209,7 @@ final class ClipboardMonitor {
         }
 
         let excludedBundleIDs = settings.excludedBundleIDs
-        let sourceBundleID = frontmostBundleIDProvider()
+        let sourceBundleID = lastFrontmostBundleID ?? frontmostBundleIDProvider()
 
         if let sourceBundleID, excludedBundleIDs.contains(sourceBundleID) {
             changeCountLock.lock()
@@ -211,6 +229,11 @@ final class ClipboardMonitor {
             self.changeCountLock.lock()
             self.isProcessingPayload = false
             self.changeCountLock.unlock()
+
+            // Re-poll in case a clipboard change arrived while we were processing.
+            DispatchQueue.main.async { [weak self] in
+                self?.pollPasteboard()
+            }
         }
     }
 

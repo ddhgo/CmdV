@@ -180,7 +180,7 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     var onSetRecordingEnabled: ((Bool) -> Void)?
     var onQuit: (() -> Void)?
 
-    private let statusItem = NSStatusBar.system.statusItem(withLength: 30)
+    private let statusItem = NSStatusBar.system.statusItem(withLength: 25)
     private let menu = NSMenu()
     private var menuKeyMonitor: Any?
     private var menuGlobalKeyMonitor: Any?
@@ -202,9 +202,9 @@ final class StatusBarController: NSObject, NSMenuDelegate {
     private var appLanguage: AppLanguage = .korean
     private var hotkeyConfiguration: HotkeyConfiguration = .default
     private var isRecordingPaused = false
-    private let menuBarIconSize = NSSize(width: 19, height: 19)
-    private lazy var activeMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 1.0, alpha: 1.0))
-    private lazy var pausedMenuBarIcon = makeColoredMenuBarIcon(color: NSColor(white: 0.62, alpha: 1.0))
+    private let menuBarIconSize = NSSize(width: 18, height: 18)
+    private lazy var activeMenuBarIcon = makeTemplateMenuBarIcon()
+    private lazy var pausedMenuBarIcon = makeTemplateMenuBarIcon()
 
     override init() {
         super.init()
@@ -232,12 +232,6 @@ final class StatusBarController: NSObject, NSMenuDelegate {
         statusItem.menu = menu
 
         if let button = statusItem.button {
-            button.frame = NSRect(
-                x: 0,
-                y: 0,
-                width: 30,
-                height: NSStatusBar.system.thickness
-            )
             button.image = activeMenuBarIcon
             button.imageScaling = .scaleProportionallyUpOrDown
             button.imagePosition = .imageOnly
@@ -251,64 +245,23 @@ final class StatusBarController: NSObject, NSMenuDelegate {
             return
         }
 
-        if isRecordingPaused {
-            button.image = pausedMenuBarIcon
-        } else {
-            button.image = activeMenuBarIcon
-        }
-
-        button.contentTintColor = nil
-        button.alphaValue = 1.0
+        button.image = isRecordingPaused ? pausedMenuBarIcon : activeMenuBarIcon
+        button.alphaValue = isRecordingPaused ? 0.5 : 1.0
     }
 
-    private func makeColoredMenuBarIcon(color: NSColor) -> NSImage {
+    private func makeTemplateMenuBarIcon() -> NSImage {
         guard let baseCGImage = loadBaseMenuBarCGImage() else {
             let fallback = NSImage(
                 systemSymbolName: "doc.on.clipboard",
                 accessibilityDescription: "CmdV"
             ) ?? NSImage(size: menuBarIconSize)
             fallback.size = menuBarIconSize
-            fallback.isTemplate = false
+            fallback.isTemplate = true
             return fallback
         }
 
-        let width = baseCGImage.width
-        let height = baseCGImage.height
-        let rect = CGRect(x: 0, y: 0, width: width, height: height)
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-
-        guard
-            let context = CGContext(
-                data: nil,
-                width: width,
-                height: height,
-                bitsPerComponent: 8,
-                bytesPerRow: 0,
-                space: colorSpace,
-                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-            )
-        else {
-            let fallback = NSImage(cgImage: baseCGImage, size: menuBarIconSize)
-            fallback.isTemplate = false
-            return fallback
-        }
-
-        context.interpolationQuality = .high
-        // Preserve source alpha when tinting so dark logos don't turn transparent.
-        context.draw(baseCGImage, in: rect)
-        context.setBlendMode(.sourceIn)
-        context.setFillColor(color.cgColor)
-        context.fill(rect)
-
-        guard let tintedCGImage = context.makeImage() else {
-            let fallback = NSImage(cgImage: baseCGImage, size: menuBarIconSize)
-            fallback.isTemplate = false
-            return fallback
-        }
-
-        let result = NSImage(cgImage: tintedCGImage, size: menuBarIconSize)
-        result.size = menuBarIconSize
-        result.isTemplate = false
+        let result = NSImage(cgImage: baseCGImage, size: menuBarIconSize)
+        result.isTemplate = true
         return result
     }
 

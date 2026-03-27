@@ -46,10 +46,10 @@ struct PopupContentView: View {
             contextMenuItemID = nil
             hoveredItemID = nil
             contextMenuActive = false
-            allowSelectedFallbackHighlight = false
             hoveredThumbnailPreview = nil
             lastExplicitSelectionToken = viewModel.explicitSelectionToken
             viewModel.selectFirstIfNeeded()
+            allowSelectedFallbackHighlight = viewModel.selectedItemID != nil
             searchFocused = true
         }
         .onReceive(viewModel.$searchFocusRequestToken) { _ in
