@@ -189,10 +189,9 @@ final class ClipboardMonitor {
             return
         }
         // Guard against queuing a second dispatch while the first is still running.
+        // Do NOT update _lastChangeCount here — leave it stale so the re-poll
+        // after the worker finishes will detect the change and process it.
         guard !isProcessingPayload else {
-            // Update the stored count so the in-flight dispatch picks up the latest
-            // change on its next re-check, but don't spawn a duplicate task.
-            _lastChangeCount = currentChangeCount
             changeCountLock.unlock()
             return
         }
