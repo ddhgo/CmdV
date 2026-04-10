@@ -15,7 +15,10 @@ struct PopupContentView: View {
     @State private var allowSelectedFallbackHighlight = false
     @State private var lastExplicitSelectionToken = 0
     @State private var hoveredThumbnailPreview: HoveredThumbnailPreview?
+    @State private var isImagePreviewSuppressed = false
+    @State private var imagePreviewSuppressionGeneration = 0
     private let popupCornerRadius: CGFloat = 16
+    private let imagePreviewSuppressionDuration: TimeInterval = 0.18
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -263,6 +266,7 @@ struct PopupContentView: View {
                                 item: item,
                                 isSelected: isRowSelected(itemID: item.id),
                                 language: viewModel.appLanguage,
+                                isImagePreviewSuppressed: isImagePreviewSuppressed,
                                 onMenuOpen: { openedItem in
                                     contextMenuItemID = openedItem.id
                                     hoveredItemID = openedItem.id
@@ -274,6 +278,7 @@ struct PopupContentView: View {
                                     contextMenuActive = false
                                     contextMenuItemID = nil
                                 },
+                                onScrollActivity: suppressImagePreviewDuringScroll,
                                 onHoverChanged: { hoveredItem, isHovering in
                                     if isHovering {
                                         if contextMenuActive {
@@ -427,6 +432,29 @@ struct PopupContentView: View {
 
     private func isRowSelected(itemID: Int64) -> Bool {
         highlightedItemID == itemID
+    }
+
+    /// Suppresses image preview hover while the user is actively scrolling so
+    /// rows passing under a stationary pointer do not open previews.
+    private func suppressImagePreviewDuringScroll() {
+        imagePreviewSuppressionGeneration += 1
+        let currentGeneration = imagePreviewSuppressionGeneration
+
+        isImagePreviewSuppressed = true
+
+        if hoveredThumbnailPreview != nil {
+            withAnimation(ThumbnailPreviewAnimation.hover) {
+                hoveredThumbnailPreview = nil
+            }
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + imagePreviewSuppressionDuration) {
+            guard currentGeneration == imagePreviewSuppressionGeneration else {
+                return
+            }
+
+            isImagePreviewSuppressed = false
+        }
     }
 
     private var popupBackgroundColor: Color {

@@ -125,8 +125,10 @@ struct HistoryRowView: View {
     let item: ClipboardItem
     let isSelected: Bool
     let language: AppLanguage
+    let isImagePreviewSuppressed: Bool
     let onMenuOpen: (ClipboardItem) -> Void
     let onMenuClose: () -> Void
+    let onScrollActivity: () -> Void
     let onHoverChanged: (ClipboardItem, Bool) -> Void
     let onCopy: (ClipboardItem) -> Void
     let onShare: (ClipboardItem) -> Void
@@ -229,6 +231,7 @@ struct HistoryRowView: View {
                 onMenuClose: {
                     onMenuClose()
                 },
+                onScrollActivity: onScrollActivity,
                 onHoverChanged: { isHovering in
                     onHoverChanged(item, isHovering)
                 },
@@ -251,6 +254,13 @@ struct HistoryRowView: View {
             rowMenuItems
         }
         .coordinateSpace(name: HistoryRowLayout.coordinateSpace)
+        .task(id: isImagePreviewSuppressed) {
+            guard isImagePreviewSuppressed else {
+                return
+            }
+
+            clearImagePreviewHover()
+        }
         .onDisappear {
             if isImagePreviewHovered {
                 onImagePreviewChanged(nil)
@@ -479,6 +489,11 @@ struct HistoryRowView: View {
     }
 
     private func updateImagePreviewHover(using point: CGPoint?) {
+        guard !isImagePreviewSuppressed else {
+            clearImagePreviewHover()
+            return
+        }
+
         let shouldMagnify = point.map(thumbnailFrames.localFrame.contains) ?? false
         guard shouldMagnify != isImagePreviewHovered else {
             return
@@ -496,7 +511,7 @@ struct HistoryRowView: View {
             return
         }
 
-        guard isImagePreviewHovered, thumbnailFrames.popupFrame != .zero else {
+        guard !isImagePreviewSuppressed, isImagePreviewHovered, thumbnailFrames.popupFrame != .zero else {
             onImagePreviewChanged(nil)
             return
         }
@@ -512,6 +527,18 @@ struct HistoryRowView: View {
             )
         )
     }
+
+    private func clearImagePreviewHover() {
+        guard isImagePreviewHovered else {
+            onImagePreviewChanged(nil)
+            return
+        }
+
+        withAnimation(ThumbnailPreviewAnimation.hover) {
+            isImagePreviewHovered = false
+            onImagePreviewChanged(nil)
+        }
+    }
 }
 
 private struct ThumbnailFramesPreferenceKey: PreferenceKey {
@@ -525,6 +552,7 @@ private struct ThumbnailFramesPreferenceKey: PreferenceKey {
 private struct SecondaryClickCaptureView: NSViewRepresentable {
     let onSecondaryClick: () -> Void
     let onMenuClose: () -> Void
+    let onScrollActivity: () -> Void
     let onHoverChanged: (Bool) -> Void
     let onPointerLocationChanged: (CGPoint?) -> Void
 
@@ -532,6 +560,7 @@ private struct SecondaryClickCaptureView: NSViewRepresentable {
         let view = SecondaryClickCaptureNSView()
         view.onSecondaryClick = onSecondaryClick
         view.onMenuClose = onMenuClose
+        view.onScrollActivity = onScrollActivity
         view.onHoverChanged = onHoverChanged
         view.onPointerLocationChanged = onPointerLocationChanged
         return view
@@ -540,6 +569,7 @@ private struct SecondaryClickCaptureView: NSViewRepresentable {
     func updateNSView(_ nsView: SecondaryClickCaptureNSView, context: Context) {
         nsView.onSecondaryClick = onSecondaryClick
         nsView.onMenuClose = onMenuClose
+        nsView.onScrollActivity = onScrollActivity
         nsView.onHoverChanged = onHoverChanged
         nsView.onPointerLocationChanged = onPointerLocationChanged
     }
@@ -548,6 +578,7 @@ private struct SecondaryClickCaptureView: NSViewRepresentable {
 private final class SecondaryClickCaptureNSView: NSView {
     var onSecondaryClick: (() -> Void)?
     var onMenuClose: (() -> Void)?
+    var onScrollActivity: (() -> Void)?
     var onHoverChanged: ((Bool) -> Void)?
     var onPointerLocationChanged: ((CGPoint?) -> Void)?
     private var trackingArea: NSTrackingArea?
@@ -630,6 +661,16 @@ private final class SecondaryClickCaptureNSView: NSView {
     override func mouseMoved(with event: NSEvent) {
         refreshHoverStateFromPointer()
         super.mouseMoved(with: event)
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        onScrollActivity?()
+
+        if let nextResponder {
+            nextResponder.scrollWheel(with: event)
+        } else {
+            super.scrollWheel(with: event)
+        }
     }
 
     /// Re-evaluates whether the pointer is inside this view by converting the
